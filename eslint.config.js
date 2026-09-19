@@ -6,7 +6,10 @@ import tseslint from "typescript-eslint";
 import { defineConfig, globalIgnores } from "eslint/config";
 
 export default defineConfig([
-  globalIgnores(["dist", "packages/ui/**"]),
+  // .claude/** holds a git worktree from another session; ignore it here
+  // for the same reason vite.config.ts excludes it from Vitest discovery,
+  // so `npm run lint` only reports on this repo's own code.
+  globalIgnores(["dist", "packages/ui/**", ".claude/**"]),
   {
     files: ["**/*.{ts,tsx}"],
     extends: [
