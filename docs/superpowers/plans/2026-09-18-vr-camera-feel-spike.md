@@ -1894,6 +1894,15 @@ import { createXRStore } from "@react-three/xr";
  */
 export const NATIVE_WEBXR = typeof navigator !== "undefined" && "xr" in navigator;
 
+// Desktop Chrome ships navigator.xr with no headset behind it. The library would emulate a Quest 3 there, but its
+// emulator (IWER 2.4) refuses to install while a native navigator.xr exists. So on localhost we ask the native API
+// first, and only when it cannot do immersive VR do we shadow it with `undefined`, which lets the emulator in.
+// A real headset reached through `adb reverse` also says "localhost": it answers true and keeps its native runtime.
+if (NATIVE_WEBXR && window.location.hostname === "localhost") {
+  const nativeVr = await navigator.xr!.isSessionSupported("immersive-vr").catch(() => false);
+  if (!nativeVr) Object.defineProperty(navigator, "xr", { value: undefined, configurable: true });
+}
+
 export const xrStore = createXRStore({
   // Desktop Chrome has the API and no headset: there the library injects a Quest 3 emulator (localhost only).
   // Browsers without the API get no emulator, so the page stays a plain flat page.
@@ -2142,15 +2151,17 @@ export function Viewfinder() {
 
     const previousTarget = gl.getRenderTarget(); // during a session this is three's XR target, not null
     const previousXrEnabled = gl.xr.enabled;
-    const originWasVisible = origin ? origin.visible : false;
+    // Without an <XROrigin> the library reports the scene itself as the origin. Hiding that would blank the lens.
+    const xrOrigin = origin && origin !== scene ? origin : null;
+    const originWasVisible = xrOrigin ? xrOrigin.visible : false;
     sceneRefs.hideFromLens.forEach(hide); // also prevents sampling the texture we are rendering into
-    if (origin) origin.visible = false; // controller models and the teleport arc
+    if (xrOrigin) xrOrigin.visible = false; // controller models and the teleport arc
     gl.xr.enabled = false;
     gl.setRenderTarget(target);
     gl.render(scene, lensCamera);
     gl.setRenderTarget(previousTarget);
     gl.xr.enabled = previousXrEnabled;
-    if (origin) origin.visible = originWasVisible;
+    if (xrOrigin) xrOrigin.visible = originWasVisible;
     sceneRefs.hideFromLens.forEach(show);
 
     // Readout text, ten times a second at most, and only when it changed.
@@ -2287,7 +2298,7 @@ export function HudMonitor({ children }: { children?: ReactNode }) {
     const eye = new Vector3(OVERVIEW_CAMERA_POSITION[0], OVERVIEW_CAMERA_POSITION[1], OVERVIEW_CAMERA_POSITION[2]);
     const lookAt = new Vector3(OVERVIEW_LOOK_AT[0], OVERVIEW_LOOK_AT[1], OVERVIEW_LOOK_AT[2]);
     const quaternion = new Quaternion().setFromRotationMatrix(new Matrix4().lookAt(eye, lookAt, new Vector3(0, 1, 0)));
-    const offset = new Vector3(0.62, -0.42, -1.4).applyQuaternion(quaternion); // right, down, forward of the camera
+    const offset = new Vector3(0.5, -0.42, -1.4).applyQuaternion(quaternion); // right, down, forward of the camera (fits a 4:3 window)
     return { position: eye.add(offset), quaternion };
   }, []);
 
