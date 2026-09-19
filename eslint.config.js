@@ -26,24 +26,17 @@ export default defineConfig([
       "no-restricted-imports": [
         "error",
         {
-          paths: [
-            {
-              name: "react",
-              message:
-                "src/domain and src/storage must stay framework-free. See AGENTS.md, Global Constraints.",
-            },
-            {
-              name: "react-dom",
-              message:
-                "src/domain and src/storage must stay framework-free. See AGENTS.md, Global Constraints.",
-            },
-            {
-              name: "three",
-              message:
-                "src/domain and src/storage must stay framework-free. See AGENTS.md, Global Constraints.",
-            },
-          ],
           patterns: [
+            {
+              group: ["react", "react/*", "react-dom", "react-dom/*"],
+              message:
+                "src/domain and src/storage must stay framework-free. See AGENTS.md, Global Constraints.",
+            },
+            {
+              group: ["three", "three/*"],
+              message:
+                "src/domain and src/storage must stay framework-free. See AGENTS.md, Global Constraints.",
+            },
             {
               group: ["@react-three/*"],
               message:
