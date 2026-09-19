@@ -50,11 +50,11 @@ function ShortcutsSheet({
           // `data-open:animate-in` / `data-closed:animate-out`, which Tailwind
           // v4 compiles to `.data-open\:animate-in:where([data-open]…)`. The
           // `:where()` contributes no specificity, so both rules are a single
-          // class and the tie is broken by source order — and the plain
+          // class and the tie is broken by source order, and the plain
           // `motion-reduce:` block is emitted well before the `data-*`
           // variants, so `animation: enter` wins. Restating the data variant
           // sorts this override after its counterpart, which wins the same tie.
-          // Verified by reading `animation-name` back — see the ReducedMotion
+          // Verified by reading `animation-name` back, see the ReducedMotion
           // story. The backdrop still fades; that class is in ui/dialog.tsx.
           "flex max-h-[80vh] flex-col motion-reduce:data-open:animate-none motion-reduce:data-closed:animate-none sm:max-w-md",
           className,
@@ -64,7 +64,7 @@ function ShortcutsSheet({
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
         {/* The list scrolls once the sections pass the 80vh cap, so it carries
-            its own tab stop and name — axe `scrollable-region-focusable`.
+            its own tab stop and name: axe `scrollable-region-focusable`.
             Without it the only keyboard-reachable thing in a sixty-binding
             sheet is its close button.
 
@@ -79,7 +79,7 @@ function ShortcutsSheet({
 
             The name is the list's contents, not the sheet's title. `title`
             defaults to "Keyboard Shortcuts", which is already the dialog's own
-            accessible name — reusing it would make the region announce its
+            accessible name, reusing it would make the region announce its
             container a second time. Same rule the shells follow: "Assets",
             "Filters", and here the bindings themselves. */}
         <section

@@ -44,7 +44,7 @@ function ResetAffordance({
     <button
       type="button"
       onClick={onReset}
-      // Nothing to reset at default — kept mounted, and dimmed, so the control
+      // Nothing to reset at default: kept mounted, and dimmed, so the control
       // never changes position between states.
       disabled={state === "default"}
       aria-label={label}
