@@ -18,7 +18,12 @@ if (NATIVE_WEBXR && window.location.hostname === "localhost") {
 export const xrStore = createXRStore({
   // Desktop Chrome has the API and no headset: there the library injects a Quest 3 emulator (localhost only).
   // Browsers without the API get no emulator, so the page stays a plain flat page.
-  emulate: NATIVE_WEBXR ? "metaQuest3" : false,
+  // The emulator's synthetic room only matters for AR, so it stays off. (The emulator packages also need the
+  // single-three override in pnpm-workspace.yaml: with a second copy of three they black out the session.)
+  emulate: NATIVE_WEBXR ? { type: "metaQuest3", syntheticEnvironment: false } : false,
+  // By default the library also offers the browser a session for its own button, and it picks AR when the device
+  // can do passthrough (a Quest 3 can). This spike's controls only run in VR, and the page has its own Enter VR button.
+  offerSession: false,
   hand: false, // controllers only
   controller: {
     // The library binds its teleport arc to the trigger ("select", fires on release). Teleport therefore lives

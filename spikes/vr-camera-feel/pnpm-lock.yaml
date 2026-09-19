@@ -4,6 +4,9 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  three: 0.186.0
+
 importers:
 
   .:
@@ -124,7 +127,7 @@ packages:
   '@pmndrs/xr@6.6.30':
     resolution: {integrity: sha512-qy0UQHaXdZs192awbYkde+O/eKn15fz88X08+7EhlVIdsMfPAORR2JDocTzfYmtz8bKyE4z1JMUUvXb9DyUrzg==}
     peerDependencies:
-      three: '*'
+      three: 0.186.0
 
   '@react-three/fiber@9.7.0':
     resolution: {integrity: sha512-EWm9FwcaOZQu/ExFW5rggoCMM1NJet5YbxVxKaOE+KSncrjU0Wx7017qSyGFvupviK89nMYGCWU3BIK4dI1clw==}
@@ -136,7 +139,7 @@ packages:
       react: '>=19 <19.3'
       react-dom: '>=19 <19.3'
       react-native: '>=0.78'
-      three: '>=0.156'
+      three: 0.186.0
     peerDependenciesMeta:
       expo:
         optional: true
@@ -157,7 +160,7 @@ packages:
       '@react-three/fiber': '>=8'
       react: '>=18'
       react-dom: '>=18'
-      three: '*'
+      three: 0.186.0
 
   '@rolldown/binding-android-arm-eabi@1.2.9':
     resolution: {integrity: sha512-tNISae1QEf/vkb3xkRcjV5SEdzPE97We5IVaa2Z8jSszQPZ8U60B/YCYpw4QI7VidYsBtKavczXf+DyDs9WGxw==}
@@ -492,7 +495,7 @@ packages:
   meshline@3.3.1:
     resolution: {integrity: sha512-/TQj+JdZkeSUOl5Mk2J7eLcYTLiQm2IDzmlSvYm7ov15anEcDJ92GHqqazxTSreeNgfnYu24kiEvvv0WlbCdFQ==}
     peerDependencies:
-      three: '>=0.137'
+      three: 0.186.0
 
   meshoptimizer@1.1.1:
     resolution: {integrity: sha512-oRFNWJRDA/WTrVj7NWvqa5HqE1t9MYDj2VaWirQCzCCrAd2GHrqR/sQezCxiWATPNlKTcRaPRHPJwIRoPBAp5g==}
@@ -589,9 +592,6 @@ packages:
     resolution: {integrity: sha512-aqldKgX9aZqpoDp3e8/BZ8Dm7x1pJl+qI3ZKxDN0i/IQTWUwBx/ManmlVJ3wowqbno6c2bmiIfs+Um6LbsjJyQ==}
     peerDependencies:
       react: '>=17.0'
-
-  three@0.165.0:
-    resolution: {integrity: sha512-cc96IlVYGydeceu0e5xq70H8/yoVT/tXBxV/W8A/U6uOq7DXc4/s1Mkmnu6SqoYGhSRWWYFOhVwvq6V0VtbplA==}
 
   three@0.186.0:
     resolution: {integrity: sha512-cr/fIM2ddMSVbYVgkfD4jLJv7Fh/8ZTjvo+7gQeSVGUZHxpx9FDwoL5iC7hUz/LiRA8wMbqfnb90xKfm1/HHkQ==}
@@ -800,7 +800,7 @@ snapshots:
       react: 19.2.8
       react-dom: 19.2.8(react@19.2.8)
       styled-components: 6.5.3(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
-      three: 0.165.0
+      three: 0.186.0
     transitivePeerDependencies:
       - '@types/react'
       - css-to-react-native
@@ -810,7 +810,7 @@ snapshots:
   '@iwer/sem@0.2.5(iwer@2.4.0)':
     dependencies:
       iwer: 2.4.0
-      three: 0.165.0
+      three: 0.186.0
       ts-proto: 2.12.4
 
   '@jridgewell/resolve-uri@3.1.2': {}
@@ -1198,8 +1198,6 @@ snapshots:
   suspend-react@0.1.3(react@19.2.8):
     dependencies:
       react: 19.2.8
-
-  three@0.165.0: {}
 
   three@0.186.0: {}
 

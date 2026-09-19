@@ -11,6 +11,11 @@ import { serializeTake } from "./camera/take";
 import { useSpikeStore } from "./store";
 import { DebugPanel, PanelFace } from "./xr/DebugPanel";
 import { Recorder, startJitterTest, startReplay, toggleRecording } from "./xr/Recorder";
+import { useState } from "react";
+import { Locomotion } from "./xr/Locomotion";
+import { NATIVE_WEBXR } from "./xr/xr-store";
+import { ControllerInput } from "./xr/ControllerInput";
+import { detectSpeechApis, runMicProbe } from "./xr/probe";
 // ANCHOR:imports
 
 const overlayStyle = {
@@ -59,6 +64,16 @@ export function App() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
+  const [vrStatus, setVrStatus] = useState("");
+  // Probe for the V4 spec: which speech APIs exist, and (on M or the left grip) whether the mic is granted.
+  useEffect(() => {
+    useSpikeStore.getState().setProbe(detectSpeechApis(window));
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key.toLowerCase() === "m") void runMicProbe();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
   // ANCHOR:hooks
   return (
     <div style={{ position: "fixed", inset: 0 }}>
@@ -70,6 +85,8 @@ export function App() {
         <color attach="background" args={[STAGE_BACKGROUND]} />
         <XR store={xrStore}>
           <StageMount />
+          <Locomotion />
+          <ControllerInput />
           {/* ANCHOR:input */}
           <VirtualCamera>
             <BodyMonitor />
@@ -104,6 +121,20 @@ export function App() {
             Open the replay page
           </a>
         </div>
+        {NATIVE_WEBXR && (
+          <div style={{ marginTop: 6 }}>
+            <button
+              style={{ padding: "6px 14px", fontSize: 14 }}
+              onClick={() => {
+                xrStore.enterVR().catch((e: Error) => setVrStatus(`VR not available: ${e.message}`));
+              }}
+            >
+              Enter VR
+            </button>
+            <span> {vrStatus}</span>
+          </div>
+        )}
+        <div>M asks for the microphone (probe only)</div>
         {/* ANCHOR:overlay */}
       </div>
     </div>

@@ -23,6 +23,7 @@
 - Monitor widths: 0.16 m on the camera body, 0.30 m in the left hand. Grab distance 0.25 m. Jitter test 10 s.
 - The set is centred at `[0, 0, -3]`. The operator starts at the world origin facing -Z, three metres from the doll.
 - Exact pinned versions, no carets: react 19.2.8, react-dom 19.2.8, three 0.186.0, @react-three/fiber 9.7.0, @react-three/xr 6.6.30, zustand 5.0.15, vite 8.3.0, vitest 5.0.1, @vitejs/plugin-react 6.1.1, @vitejs/plugin-basic-ssl 2.3.0, typescript 5.9.3, @types/three 0.186.0, @types/react 19.2.18, @types/react-dom 19.2.7, @types/node 24.13.5.
+- One copy of three.js: `pnpm-workspace.yaml` overrides `three` to 0.186.0 for every package. The emulator packages (`@iwer/devui`, `@iwer/sem`) ask for ^0.165, and a second copy blacks out the emulated session.
 - React stays on 19.2.x on purpose: `@react-three/fiber` 9.7.0 declares the peer range `react >=19 <19.3`. Do not upgrade it.
 - Files on the Vite config's import graph (`vite.config.ts`, `takes-plugin.ts`, `src/camera/take.ts`, `src/camera/pose.ts`) write their relative imports WITH the `.ts` extension, and `tsconfig.json` sets `allowImportingTsExtensions`. Vite 8 warns on every run otherwise, because its future native config loader cannot resolve extensionless imports. Every other file imports without extensions.
 - Inside `src/camera/`, `src/input/` and `src/flat/` use relative imports only. `takes-plugin.ts` is loaded by the Vite config, where the `@/` alias does not exist, and it imports from `src/camera/`. The `@/` alias (to `src/`) exists for the copied stage files, which use it.
@@ -200,6 +201,15 @@ export default defineConfig({
 node_modules
 dist
 takes/*.json
+```
+
+- [ ] **Step 6b: Write `spikes/vr-camera-feel/pnpm-workspace.yaml`**
+
+```yaml
+# The emulator packages (@iwer/devui, @iwer/sem) ask for three ^0.165. Two copies of three in one page break the
+# emulator's renderer ("material.onBuild is not a function"), so everything is pinned to the app's version.
+overrides:
+  three: 0.186.0
 ```
 
 - [ ] **Step 7: Copy the stage layer from Film Planner, untouched**
@@ -1910,7 +1920,12 @@ if (NATIVE_WEBXR && window.location.hostname === "localhost") {
 export const xrStore = createXRStore({
   // Desktop Chrome has the API and no headset: there the library injects a Quest 3 emulator (localhost only).
   // Browsers without the API get no emulator, so the page stays a plain flat page.
-  emulate: NATIVE_WEBXR ? "metaQuest3" : false,
+  // The emulator's synthetic room only matters for AR, so it stays off. (The emulator packages also need the
+  // single-three override in pnpm-workspace.yaml: with a second copy of three they black out the session.)
+  emulate: NATIVE_WEBXR ? { type: "metaQuest3", syntheticEnvironment: false } : false,
+  // By default the library also offers the browser a session for its own button, and it picks AR when the device
+  // can do passthrough (a Quest 3 can). This spike's controls only run in VR, and the page has its own Enter VR button.
+  offerSession: false,
   hand: false, // controllers only
   controller: {
     // The library binds its teleport arc to the trigger ("select", fires on release). Teleport therefore lives
