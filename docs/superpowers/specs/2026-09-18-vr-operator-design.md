@@ -88,7 +88,7 @@ Out: rigs other than handheld, voice commands, bodies and formats (one fixed bod
 
 ### 4.3 Stack and location
 
-Vite, React 19.2, TypeScript, three, `@react-three/fiber`, `@react-three/xr`, Zustand, Vitest, pnpm. React stays on 19.2.x because `@react-three/fiber` 9.7 declares the peer range `react >=19 <19.3`. Vite is used because the spike tests feel, and Vite serves HTTPS on the LAN with one plugin (`@vitejs/plugin-basic-ssl`). The R3F and XR components move into Next.js client components unchanged later. Library versions are pinned, and the current `@react-three/xr` API is checked against its docs as the first task of the plan.
+Vite, React 19.2, TypeScript, three, `@react-three/fiber`, `@react-three/xr`, Zustand, Vitest, pnpm. React stays on 19.2.x because `@react-three/fiber` 9.7 declares the peer range `react >=19 <19.3`. Vite is used because the spike tests feel, and Vite serves HTTPS on the LAN with one plugin (`@vitejs/plugin-basic-ssl`). The R3F and XR components move into Next.js client components unchanged later. Library versions are pinned. The `@react-three/xr` 6.6.30 API was checked against its source on 2026-09-18 while the plan was written, and the plan records the library facts it relies on.
 
 Branch `spike/vr-camera-feel`, folder `spikes/vr-camera-feel/`, README marked THROWAWAY. The branch is pushed and never merged. Only the findings merge, through this document's PR.
 
