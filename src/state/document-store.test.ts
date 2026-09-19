@@ -150,6 +150,22 @@ describe("useDocumentStore", () => {
     expect(useDocumentStore.getState().project?.name).toBe("Fresh");
   });
 
+  it("load freezes the document, so a direct write throws and the store is unaffected", () => {
+    useDocumentStore.getState().load(createProject("Test"));
+    const project = useDocumentStore.getState().project!;
+
+    expect(() => {
+      project.name = "HACKED";
+    }).toThrow();
+    expect(useDocumentStore.getState().project?.name).toBe("Test");
+
+    // Existing load behaviour still holds: history is cleared, so undo
+    // right after load does nothing.
+    useDocumentStore.getState().undo();
+    expect(useDocumentStore.getState().project?.name).toBe("Test");
+    expect(useDocumentStore.getState().canUndo).toBe(false);
+  });
+
   it("apply is a no-op when the recipe produces no patches", () => {
     useDocumentStore.getState().load(createProject("Test"));
     const before = useDocumentStore.getState().project;

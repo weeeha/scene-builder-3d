@@ -57,8 +57,12 @@ export const useDocumentStore = create<DocumentState>()((set, get) => ({
   load(project, opts) {
     undoStack = [];
     redoStack = [];
+    // A no-op produce still runs the project through Immer's autoFreeze, so
+    // the stored document is frozen from the moment it lands here, not only
+    // after the first apply/applyTransient/undo/redo. Same reference in,
+    // same reference out; this is not a clone.
     set({
-      project,
+      project: produce(project, () => {}),
       readOnly: opts?.readOnly ?? false,
       saveStatus: "idle",
       saveFailures: 0,
