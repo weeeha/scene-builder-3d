@@ -24,6 +24,7 @@
 - The set is centred at `[0, 0, -3]`. The operator starts at the world origin facing -Z, three metres from the doll.
 - Exact pinned versions, no carets: react 19.2.8, react-dom 19.2.8, three 0.186.0, @react-three/fiber 9.7.0, @react-three/xr 6.6.30, zustand 5.0.15, vite 8.3.0, vitest 5.0.1, @vitejs/plugin-react 6.1.1, @vitejs/plugin-basic-ssl 2.3.0, typescript 5.9.3, @types/three 0.186.0, @types/react 19.2.18, @types/react-dom 19.2.7, @types/node 24.13.5.
 - React stays on 19.2.x on purpose: `@react-three/fiber` 9.7.0 declares the peer range `react >=19 <19.3`. Do not upgrade it.
+- Files on the Vite config's import graph (`vite.config.ts`, `takes-plugin.ts`, `src/camera/take.ts`, `src/camera/pose.ts`) write their relative imports WITH the `.ts` extension, and `tsconfig.json` sets `allowImportingTsExtensions`. Vite 8 warns on every run otherwise, because its future native config loader cannot resolve extensionless imports. Every other file imports without extensions.
 - Inside `src/camera/`, `src/input/` and `src/flat/` use relative imports only. `takes-plugin.ts` is loaded by the Vite config, where the `@/` alias does not exist, and it imports from `src/camera/`. The `@/` alias (to `src/`) exists for the copied stage files, which use it.
 - Every `useFrame` priority is zero or negative: input -4, camera -3, recorder -2, viewfinder -1, everything else 0. A positive priority switches off R3F's automatic rendering.
 - No `new` of three.js objects inside a `useFrame` callback. Use module-level scratch objects. Garbage collection pauses would corrupt the frame-rate measurement.
@@ -139,6 +140,7 @@ touch spikes/vr-camera-feel/takes/.gitkeep
     "jsx": "react-jsx",
     "strict": true,
     "noEmit": true,
+    "allowImportingTsExtensions": true,
     "skipLibCheck": true,
     "isolatedModules": true,
     "esModuleInterop": true,
@@ -340,7 +342,7 @@ Expected: FAIL, cannot resolve `./pose`.
 
 ```ts
 import { Quaternion, Vector3 } from "three";
-import type { Vec3 } from "../stage/types";
+import type { Vec3 } from "../stage/types.ts";
 
 export type Quat = [number, number, number, number]; // x, y, z, w
 export type CameraPose = { position: Vec3; rotation: Quat };
@@ -607,8 +609,8 @@ Expected: FAIL, cannot resolve `./take`.
 - [ ] **Step 3: Write `src/camera/take.ts`**
 
 ```ts
-import type { CameraPose } from "./pose";
-import { lerpVec3, slerpQuat } from "./pose";
+import type { CameraPose } from "./pose.ts";
+import { lerpVec3, slerpQuat } from "./pose.ts";
 
 export const TAKE_STRIDE = 8; // t, px, py, pz, qx, qy, qz, qw
 
@@ -1645,7 +1647,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Plugin } from "vite";
-import { parseTake } from "./src/camera/take";
+import { parseTake } from "./src/camera/take.ts";
 
 export type TakeSummary = { id: string; number: number; lensMm: number; durationSec: number; createdAt: number };
 
@@ -1760,8 +1762,10 @@ import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import basicSsl from "@vitejs/plugin-basic-ssl";
 import { fileURLToPath } from "node:url";
-import { takesPlugin } from "./takes-plugin";
+import { takesPlugin } from "./takes-plugin.ts";
 
+// HTTPS is the default because WebXR needs a secure context on the LAN.
+// SPIKE_HTTP=1 serves plain http for localhost and for `adb reverse`.
 const useHttps = process.env.SPIKE_HTTP !== "1";
 
 export default defineConfig({
