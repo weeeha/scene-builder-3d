@@ -38,6 +38,15 @@ export function resolveSceneAll(scene: Scene, shot: Shot | null, t: number): Sta
     if (merged.kind === "doll" && override?.pose !== undefined) {
       merged.pose = override.pose;
     }
+    // The spread above copies every field shallowly, so any other
+    // array-valued field still points at the document's own array. A
+    // primitive's size is the only one today (doll and prop carry no
+    // other array field); clone it too so a consumer writing into the
+    // returned size (e.g. a three.js geometry sync) never mutates the
+    // document.
+    if (merged.kind === "primitive") {
+      merged.size = [...merged.size] as Vec3;
+    }
     return merged;
   });
 }
@@ -60,19 +69,26 @@ function lerpVec3(a: Vec3, b: Vec3, ratio: number): Vec3 {
   return [lerp(a[0], b[0], ratio), lerp(a[1], b[1], ratio), lerp(a[2], b[2], ratio)];
 }
 
-/** Samples a sorted keyframe track at time t. One key is constant; t before the first key or after the last clamps. */
+/**
+ * Samples a sorted keyframe track at time t. One key is constant; t before
+ * the first key or after the last clamps. Every returned Vec3 is a fresh
+ * array, on every path, including the clamped and single-key ones: a
+ * caller (e.g. a three.js consumer writing into Framing.position in
+ * place) must never be able to reach back into a stored keyframe's own
+ * value array.
+ */
 function sampleTrack(track: Keyframe[], t: number): Vec3 {
   if (track.length === 1) {
-    return track[0].value;
+    return [...track[0].value] as Vec3;
   }
 
   const first = track[0];
   if (t <= first.t) {
-    return first.value;
+    return [...first.value] as Vec3;
   }
   const last = track[track.length - 1];
   if (t >= last.t) {
-    return last.value;
+    return [...last.value] as Vec3;
   }
 
   for (let i = 0; i < track.length - 1; i += 1) {
@@ -84,7 +100,7 @@ function sampleTrack(track: Keyframe[], t: number): Vec3 {
     }
   }
 
-  return last.value;
+  return [...last.value] as Vec3;
 }
 
 /**

@@ -162,6 +162,26 @@ describe("resolveSceneAll", () => {
     const filtered = all.filter((o) => o.visible);
     expect(resolveScene(scene, shot, 0)).toEqual(filtered);
   });
+
+  it("clones a primitive's size array, so mutating the result leaves the scene's own size unchanged", () => {
+    const box = createPrimitive("box");
+    const scene = withObjects(createScene("Set"), [box]);
+
+    const result = resolveSceneAll(scene, null, 0);
+    const resultBox = result[0];
+    expect(resultBox.kind).toBe("primitive");
+    if (resultBox.kind !== "primitive") {
+      throw new Error("expected primitive");
+    }
+
+    // box is the same object reference stored in scene.set.objects, so
+    // checking box.size after mutating the result also proves the
+    // document (scene.set.objects[0]) was not mutated.
+    expect(resultBox.size).not.toBe(box.size);
+
+    resultBox.size[0] = 999;
+    expect(box.size).toEqual([1, 1, 1]);
+  });
 });
 
 describe("cameraAt", () => {
@@ -204,5 +224,49 @@ describe("cameraAt", () => {
   it("clamps to the last key after its t", () => {
     const camera = makeCamera();
     expect(cameraAt(camera, 10)).toEqual({ position: [10, 20, 30], aim: [10, 0, -1] });
+  });
+
+  it("returns fresh arrays for a single-key track, not references to the keyframe's own value", () => {
+    const camera: ShotCamera = {
+      lensMm: 35,
+      position: [{ t: 0, value: [1, 2, 3] }],
+      aim: [{ t: 0, value: [0, 1, 0] }],
+    };
+
+    const result = cameraAt(camera, 0);
+    expect(result.position).not.toBe(camera.position[0].value);
+    expect(result.aim).not.toBe(camera.aim[0].value);
+
+    result.position[0] = 999;
+    result.aim[0] = 999;
+    expect(camera.position[0].value).toEqual([1, 2, 3]);
+    expect(camera.aim[0].value).toEqual([0, 1, 0]);
+  });
+
+  it("returns fresh arrays when clamped before the first key, not references to that keyframe's value", () => {
+    const camera = makeCamera();
+
+    const result = cameraAt(camera, -1);
+    expect(result.position).not.toBe(camera.position[0].value);
+    expect(result.aim).not.toBe(camera.aim[0].value);
+
+    result.position[0] = 999;
+    result.aim[0] = 999;
+    expect(camera.position[0].value).toEqual([0, 0, 0]);
+    expect(camera.aim[0].value).toEqual([0, 0, -1]);
+  });
+
+  it("returns fresh arrays when clamped after the last key, not references to that keyframe's value", () => {
+    const camera = makeCamera();
+    const lastIndex = camera.position.length - 1;
+
+    const result = cameraAt(camera, 10);
+    expect(result.position).not.toBe(camera.position[lastIndex].value);
+    expect(result.aim).not.toBe(camera.aim[lastIndex].value);
+
+    result.position[0] = 999;
+    result.aim[0] = 999;
+    expect(camera.position[lastIndex].value).toEqual([10, 20, 30]);
+    expect(camera.aim[lastIndex].value).toEqual([10, 0, -1]);
   });
 });
