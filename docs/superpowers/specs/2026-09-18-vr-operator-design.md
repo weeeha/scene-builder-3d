@@ -88,7 +88,7 @@ Out: rigs other than handheld, voice commands, bodies and formats (one fixed bod
 
 ### 4.3 Stack and location
 
-Vite, React 19, TypeScript, three, `@react-three/fiber`, `@react-three/xr`, Zustand, Vitest, pnpm. Vite is used because the spike tests feel, and Vite serves HTTPS on the LAN with one plugin (`@vitejs/plugin-basic-ssl`). The R3F and XR components move into Next.js client components unchanged later. Library versions are pinned, and the current `@react-three/xr` API is checked against its docs as the first task of the plan.
+Vite, React 19.2, TypeScript, three, `@react-three/fiber`, `@react-three/xr`, Zustand, Vitest, pnpm. React stays on 19.2.x because `@react-three/fiber` 9.7 declares the peer range `react >=19 <19.3`. Vite is used because the spike tests feel, and Vite serves HTTPS on the LAN with one plugin (`@vitejs/plugin-basic-ssl`). The R3F and XR components move into Next.js client components unchanged later. Library versions are pinned, and the current `@react-three/xr` API is checked against its docs as the first task of the plan.
 
 Branch `spike/vr-camera-feel`, folder `spikes/vr-camera-feel/`, README marked THROWAWAY. The branch is pushed and never merged. Only the findings merge, through this document's PR.
 
@@ -142,11 +142,13 @@ Jitter metric: over the hold, take the camera's forward vector per sample, compu
 | Right grip | Grab the camera when the hand is near it. Releasing leaves it floating in place, like a locked-off tripod. |
 | Right trigger | Start and stop recording. |
 | Right stick left / right | Previous / next lens. |
+| Right stick up / down | Viewfinder resolution step up / down (question 1). |
 | A | Replay the last take. |
 | B | Run the 10 s jitter test. |
-| Left stick forward | Teleport arc, release to jump. |
-| Left stick left / right | Snap turn. |
-| Left hand | Holds the second monitor. |
+| Left trigger | Teleport: aim the arc, release to jump. `@react-three/xr` binds its teleport pointer to the trigger. |
+| Left stick left / right | Snap turn, 45 degrees. |
+| Left hand | Holds the second monitor, with the debug panel above it. |
+| Left grip | Run the mic probe: ask for the microphone while the session is running. |
 | X | Cycle smoothing level. |
 | Y | Toggle the debug panel. |
 
