@@ -124,8 +124,8 @@ playhead changes never trigger a save.
   that stays mounted. Leaving to the board or the prop library unmounts it.
 - **Shot strip.** `[Set] [01] [02] [03] [+]` along the bottom of both pages.
   Set opens the scene page. A number opens that shot. Each shot card shows a
-  thumbnail, name and duration, and offers duplicate, delete and drag to
-  reorder. A thumbnail is rendered through that shot's camera into an
+  thumbnail, name and duration, and offers duplicate, delete and reorder
+  (move buttons in S1, drag later). A thumbnail is rendered through that shot's camera into an
   offscreen target, never grabbed from the screen, so any shot can be
   refreshed from either page. A refresh runs, debounced, for every shot whose
   state hash differs from the hash stored with its thumbnail.
@@ -395,5 +395,7 @@ Both belong to S4 and do not block S0 to S2.
 
 - 2026-09-18: initial spec from the brainstorm (D1 to D7, approach A, three
   design sections approved in chat).
+- 2026-09-18: shot reorder uses move buttons in S1, with drag deferred, to
+  avoid a drag and drop dependency in the skeleton.
 - 2026-09-18: D8 added. The front end uses `@weeeha/ui` and Super AI
   Components, per Nick, replacing the generic shadcn/ui line.
