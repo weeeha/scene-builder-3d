@@ -84,4 +84,76 @@ describe("createAutosaver", () => {
 
     expect(onStatus).toHaveBeenLastCalledWith("saved", 0);
   });
+
+  it("dispose fires a best-effort save of a pending edit instead of dropping it", async () => {
+    const save = vi.fn().mockResolvedValue(undefined);
+    const onStatus = vi.fn();
+    const autosaver = createAutosaver({ save, onStatus });
+    const project = createProject("Closing early");
+
+    autosaver.schedule(project);
+    await vi.advanceTimersByTimeAsync(100); // well inside the 500 ms debounce window
+    autosaver.dispose();
+    await vi.advanceTimersByTimeAsync(1000);
+
+    expect(save).toHaveBeenCalledTimes(1);
+    expect(save).toHaveBeenCalledWith(project);
+  });
+
+  it("dispose with nothing pending does not call save", async () => {
+    const save = vi.fn().mockResolvedValue(undefined);
+    const onStatus = vi.fn();
+    const autosaver = createAutosaver({ save, onStatus });
+
+    autosaver.dispose();
+    await vi.advanceTimersByTimeAsync(1000);
+
+    expect(save).not.toHaveBeenCalled();
+  });
+
+  it("never runs two saves concurrently, and settles on saved when an in-flight failure is followed by a queued success", async () => {
+    const onStatus = vi.fn();
+    let rejectA!: (err: Error) => void;
+    let resolveB!: () => void;
+    const save = vi
+      .fn()
+      .mockImplementationOnce(
+        () =>
+          new Promise<void>((_, reject) => {
+            rejectA = reject;
+          }),
+      )
+      .mockImplementationOnce(
+        () =>
+          new Promise<void>((resolve) => {
+            resolveB = resolve;
+          }),
+      );
+    const autosaver = createAutosaver({ save, onStatus });
+
+    const projectA = createProject("A");
+    const projectB = createProject("B");
+
+    autosaver.schedule(projectA);
+    await vi.advanceTimersByTimeAsync(500); // debounce elapses, A's save starts and stays in flight
+    expect(save).toHaveBeenCalledTimes(1);
+
+    autosaver.schedule(projectB);
+    await vi.advanceTimersByTimeAsync(500); // B's own debounce fires while A is still in flight
+    expect(save).toHaveBeenCalledTimes(1); // no concurrent second save started
+
+    rejectA(new Error("disk full"));
+    await vi.advanceTimersByTimeAsync(0); // let A's rejection settle and the queued B start
+    expect(save).toHaveBeenCalledTimes(2);
+    expect(save).toHaveBeenNthCalledWith(2, projectB);
+
+    resolveB();
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(onStatus).toHaveBeenLastCalledWith("saved", 0);
+
+    // No stray retry timer left over from A's failure should fire later.
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(save).toHaveBeenCalledTimes(2);
+  });
 });

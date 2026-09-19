@@ -33,6 +33,22 @@ describe("exportFileName", () => {
     const project = createProject("My Film: Take 2");
     expect(exportFileName(project)).toBe("my-film-take-2.sb3d.json");
   });
+
+  it("caps a very long project name so the filename stays under the filesystem limit", () => {
+    const project = createProject("A".repeat(300));
+    const fileName = exportFileName(project);
+
+    expect(fileName.length).toBeLessThanOrEqual(255);
+    expect(fileName).toBe(`${"a".repeat(80)}.sb3d.json`);
+  });
+
+  it("trims a trailing separator left behind by truncation", () => {
+    const project = createProject(`${"a".repeat(79)} ${"b".repeat(50)}`);
+    const fileName = exportFileName(project);
+
+    expect(fileName.endsWith("-.sb3d.json")).toBe(false);
+    expect(fileName).toBe(`${"a".repeat(79)}.sb3d.json`);
+  });
 });
 
 describe("importProjectJson", () => {

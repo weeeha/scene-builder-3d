@@ -19,12 +19,22 @@ export function exportProjectJson(project: Project): Blob {
   return new Blob([JSON.stringify(stripped, null, 2)], { type: "application/json" });
 }
 
+// ext4, APFS and NTFS all reject filenames over 255 bytes; capping the slug
+// at 80 characters leaves ample room for the ".sb3d.json" suffix (10 chars)
+// while still comfortably identifying the project.
+const MAX_SLUG_LENGTH = 80;
+
 function slugify(name: string): string {
-  const slug = name
+  const base = name
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
-  return slug || "project";
+  const fallback = base || "project";
+  // Truncating can leave a trailing separator (e.g. the cut lands right
+  // after a run of non-alphanumeric characters); trim it so the slug never
+  // ends in a dash.
+  const truncated = fallback.slice(0, MAX_SLUG_LENGTH).replace(/-+$/g, "");
+  return truncated || "project";
 }
 
 export function exportFileName(project: Project): string {
