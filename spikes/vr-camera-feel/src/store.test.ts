@@ -31,12 +31,14 @@ describe("lens, smoothing and viewfinder resolution", () => {
     expect(LENSES_MM[store().lensIndex]).toBe(18);
   });
 
-  it("ignores lens and smoothing changes outside the idle phase", () => {
+  it("ignores lens, smoothing and viewfinder size changes outside the idle phase", () => {
     store().startRecording();
     store().stepLens(1);
     store().cycleSmoothing();
+    store().stepVfRes(1);
     expect(store().lensIndex).toBe(2);
     expect(store().smoothingIndex).toBe(0);
+    expect(store().vfResIndex).toBe(1);
   });
 
   it("wraps smoothing and clamps the viewfinder resolution", () => {

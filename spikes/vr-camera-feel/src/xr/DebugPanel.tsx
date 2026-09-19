@@ -47,8 +47,15 @@ export function DebugPanel() {
     const frameRate = (session as (XRSession & { frameRate?: number }) | undefined)?.frameRate;
     const jitter = store.jitter;
 
+    // While recording, the take's numbers are live. After "cut" they are the frozen reading, untouched by later frames.
+    const recording = store.phase === "recording";
+    const take = recording ? fps : runtime.takeFps;
+    const takeLine = take
+      ? `fps 1s ${fps.recentFps.toFixed(1)} | ${recording ? "this take" : "last take"} avg ${take.avgFps.toFixed(1)} | worst ${take.worstMs.toFixed(1)} ms | n ${take.frames}`
+      : `fps 1s ${fps.recentFps.toFixed(1)} | no take yet`;
+
     getPanel().draw([
-      `fps 1s ${fps.recentFps.toFixed(1)} | take avg ${fps.avgFps.toFixed(1)} | worst ${fps.worstMs.toFixed(1)} ms | n ${fps.frames}`,
+      takeLine,
       `target ${frameRate ? `${frameRate} Hz` : "n/a (flat page)"} | VF ${vfWidth}x${vfHeight}`,
       `lens ${lensMm} mm | vFOV ${vFovDeg(lensMm, FULL_FRAME, FORMAT_21_9).toFixed(1)} deg | smoothing ${SMOOTHING_LEVELS[store.smoothingIndex].name}`,
       `phase ${store.phase} ${runtime.phaseClock.toFixed(1)} s | grabbed ${runtime.grabbed ? "yes" : "no"} | handheld ${HANDHELD_IMPLEMENTED ? "custom" : "pass-through"}`,

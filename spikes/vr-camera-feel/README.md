@@ -66,6 +66,11 @@ Flat-page keys: `R` record or stop, `P` replay, `[` `]` lens, `S` smoothing, `-`
 
 Work top to bottom. It takes about 20 minutes. Write the results into the table at the end.
 
+Before the timed questions: clear the headset's boundary (Guardian) prompt, enter VR, and spend ten seconds on
+locomotion, which no desktop check has exercised yet: aim the LEFT trigger's arc at the floor and release to
+teleport, then flick the LEFT stick to snap-turn. During a jitter test, or a take you mean to keep, keep your left
+hand off the stick and the trigger: a teleport or a turn is recorded faithfully and ruins that trial.
+
 If the panel says `handheld pass-through`, the smoothing levels do nothing yet. Write the body of
 `src/camera/handheld.ts` first (about ten lines, trade-offs are in the file), or ask for the reference version.
 
@@ -75,8 +80,10 @@ how many seconds from saving to seeing it?
 
 **Question 1, frame rate.** Enter VR. Line 2 of the panel shows `target NN Hz`. Grab the camera, pull the right
 trigger, operate for 30 seconds (the strip under the picture counts), pull the trigger again. Read line 1:
-`take avg` and `worst`. It passes when `take avg` is within 1 of the target and `worst` stays under
-27.8 ms at 72 Hz, or 22.2 ms at 90 Hz. Do it once per viewfinder size (right stick up and down).
+`last take avg` and `worst`. Those two numbers are frozen at the cut, so saving the take cannot disturb them.
+It passes when `last take avg` is within 1 of the target and `worst` stays under twice the frame budget
+(2 x 1000 / target: 27.8 ms at 72 Hz, 22.2 ms at 90 Hz, 16.7 ms at 120 Hz). Do it once per viewfinder size.
+Change the size between takes (right stick up and down): it is locked while a take or a test is running.
 Write down the largest size that passes.
 
 **Question 2, steadiness.** Flick the lens to 85 mm. Frame the doll's head and shoulders. For each smoothing

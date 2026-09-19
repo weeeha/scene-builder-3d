@@ -161,13 +161,14 @@ import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import basicSsl from "@vitejs/plugin-basic-ssl";
 import { fileURLToPath } from "node:url";
+import { takesPlugin } from "./takes-plugin.ts";
 
 // HTTPS is the default because WebXR needs a secure context on the LAN.
 // SPIKE_HTTP=1 serves plain http for localhost and for `adb reverse`.
 const useHttps = process.env.SPIKE_HTTP !== "1";
 
 export default defineConfig({
-  plugins: [react(), ...(useHttps ? [basicSsl()] : [])],
+  plugins: [react(), ...(useHttps ? [basicSsl()] : []), takesPlugin()],
   resolve: { alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) } },
   server: { host: true, port: 5173, strictPort: true },
   test: { environment: "node", include: ["src/**/*.test.ts", "takes-plugin.test.ts"] },
@@ -993,6 +994,10 @@ export const GRAB_DISTANCE_M = 0.25;
 export const JITTER_TEST_SEC = 10;
 export const CLIP_ASPECT = 21 / 9;
 
+/** Clip planes of the lens. The live camera and the replay page share them, so a take replays exactly. */
+export const LENS_NEAR_M = 0.05;
+export const LENS_FAR_M = 200;
+
 /** The set sits three metres in front of the operator, who starts at the world origin facing -Z. */
 export const SET_CENTER: Vec3 = [0, 0, -3];
 
@@ -1330,12 +1335,14 @@ describe("lens, smoothing and viewfinder resolution", () => {
     expect(LENSES_MM[store().lensIndex]).toBe(18);
   });
 
-  it("ignores lens and smoothing changes outside the idle phase", () => {
+  it("ignores lens, smoothing and viewfinder size changes outside the idle phase", () => {
     store().startRecording();
     store().stepLens(1);
     store().cycleSmoothing();
+    store().stepVfRes(1);
     expect(store().lensIndex).toBe(2);
     expect(store().smoothingIndex).toBe(0);
+    expect(store().vfResIndex).toBe(1);
   });
 
   it("wraps smoothing and clamps the viewfinder resolution", () => {
@@ -1473,7 +1480,11 @@ export const useSpikeStore = create<SpikeState>()((set, get) => ({
     if (get().phase !== "idle") return;
     set((s) => ({ smoothingIndex: (s.smoothingIndex + 1) % SMOOTHING_LEVELS.length }));
   },
-  stepVfRes: (dir) => set((s) => ({ vfResIndex: clamp(s.vfResIndex + dir, 0, VF_RESOLUTIONS.length - 1) })),
+  // Changing the size recreates the render target, which can hitch. So it is locked while anything is being measured.
+  stepVfRes: (dir) => {
+    if (get().phase !== "idle") return;
+    set((s) => ({ vfResIndex: clamp(s.vfResIndex + dir, 0, VF_RESOLUTIONS.length - 1) }));
+  },
   togglePanel: () => set((s) => ({ panelVisible: !s.panelVisible })),
 
   startRecording: () => {
@@ -1534,6 +1545,8 @@ export const runtime = {
   /** Seconds since the current phase began. */
   phaseClock: 0,
   fps: createFpsMeter(),
+  /** Frame-rate numbers of the last finished take, frozen at the moment of "cut". Null until one exists. */
+  takeFps: null as { avgFps: number; worstMs: number; frames: number } | null,
   /** Seconds since page load. Drives the scripted path in flat mode. */
   flatClock: 0,
   inXR: false,
@@ -1912,8 +1925,13 @@ export const NATIVE_WEBXR = typeof navigator !== "undefined" && "xr" in navigato
 // emulator (IWER 2.4) refuses to install while a native navigator.xr exists. So on localhost we ask the native API
 // first, and only when it cannot do immersive VR do we shadow it with `undefined`, which lets the emulator in.
 // A real headset reached through `adb reverse` also says "localhost": it answers true and keeps its native runtime.
+// Only a clear "no" removes the native object. A rejection or a call that hangs counts as "keep native", and the
+// 1.5 s cap guarantees this top-level await can never leave the page blank.
 if (NATIVE_WEBXR && window.location.hostname === "localhost") {
-  const nativeVr = await navigator.xr!.isSessionSupported("immersive-vr").catch(() => false);
+  const nativeVr = await Promise.race([
+    navigator.xr!.isSessionSupported("immersive-vr").catch(() => true),
+    new Promise<boolean>((resolve) => setTimeout(() => resolve(true), 1500)),
+  ]);
   if (!nativeVr) Object.defineProperty(navigator, "xr", { value: undefined, configurable: true });
 }
 
@@ -1982,7 +2000,7 @@ import { FORMAT_21_9, FULL_FRAME, vFovDeg } from "../camera/fov";
 import { handheld } from "../camera/handheld";
 import type { CameraPose } from "../camera/pose";
 import { poseAt } from "../camera/take";
-import { CLIP_ASPECT, LENSES_MM, SMOOTHING_LEVELS } from "../constants";
+import { CLIP_ASPECT, LENSES_MM, LENS_FAR_M, LENS_NEAR_M, SMOOTHING_LEVELS } from "../constants";
 import { scriptedHandPose } from "../flat/scripted-path";
 import { runtime } from "../runtime";
 import { useSpikeStore } from "../store";
@@ -2088,7 +2106,7 @@ export function VirtualCamera({ children }: { children?: ReactNode }) {
           <meshStandardMaterial color="#111318" />
         </mesh>
       </group>
-      <perspectiveCamera ref={lens} near={0.05} far={200} />
+      <perspectiveCamera ref={lens} near={LENS_NEAR_M} far={LENS_FAR_M} />
       {children}
     </group>
   );
@@ -2463,7 +2481,7 @@ MSG
 import { useEffect, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { useXR } from "@react-three/xr";
-import { pushFrame, resetFpsMeter } from "../camera/fps-meter";
+import { pushFrame, readFpsMeter, resetFpsMeter } from "../camera/fps-meter";
 import { measureJitter } from "../camera/jitter";
 import { makeTake, pushSample, sampleCount, serializeTake, type Take } from "../camera/take";
 import { JITTER_TEST_SEC, LENSES_MM, SMOOTHING_LEVELS } from "../constants";
@@ -2472,8 +2490,9 @@ import { useSpikeStore } from "../store";
 
 async function saveTake(take: Take): Promise<void> {
   const { setSaveStatus } = useSpikeStore.getState();
+  setSaveStatus(`saving take ${take.number}...`); // so a stuck save never reads as the previous take's success
   try {
-    const response = await fetch("/takes", { method: "POST", body: serializeTake(take) });
+    const response = await fetch("/takes", { method: "POST", body: serializeTake(take), signal: AbortSignal.timeout(5000) });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     setSaveStatus(`saved take ${take.number} (${take.durationSec.toFixed(1)} s)`);
   } catch (error) {
@@ -2486,6 +2505,10 @@ async function saveTake(take: Take): Promise<void> {
 export function stopRecording(): void {
   const store = useSpikeStore.getState();
   if (store.phase !== "recording") return;
+  // Freeze the take's frame-rate numbers first. Everything below (building, serializing and posting the take) is
+  // bookkeeping, and it must not leak into the measurement the panel shows for question 1.
+  const fps = readFpsMeter(runtime.fps);
+  runtime.takeFps = { avgFps: fps.avgFps, worstMs: fps.worstMs, frames: fps.frames };
   if (sampleCount(runtime.samples) < 2) {
     runtime.samples = [];
     store.toIdle();
@@ -2503,7 +2526,7 @@ export function stopRecording(): void {
   });
   runtime.samples = [];
   store.finishRecording(take);
-  void saveTake(take);
+  setTimeout(() => void saveTake(take), 0); // serializing thousands of numbers stays off the XR frame's call stack
 }
 
 /** "Action" and "cut" on one control: the right trigger in VR, the R key on the flat page. */
@@ -2517,6 +2540,7 @@ export function toggleRecording(): void {
   runtime.samples = [];
   runtime.phaseClock = 0;
   resetFpsMeter(runtime.fps); // question 1 reads fps over exactly one take
+  runtime.takeFps = null;
   pushSample(runtime.samples, 0, runtime.cameraPose);
 }
 
@@ -2626,8 +2650,15 @@ export function DebugPanel() {
     const frameRate = (session as (XRSession & { frameRate?: number }) | undefined)?.frameRate;
     const jitter = store.jitter;
 
+    // While recording, the take's numbers are live. After "cut" they are the frozen reading, untouched by later frames.
+    const recording = store.phase === "recording";
+    const take = recording ? fps : runtime.takeFps;
+    const takeLine = take
+      ? `fps 1s ${fps.recentFps.toFixed(1)} | ${recording ? "this take" : "last take"} avg ${take.avgFps.toFixed(1)} | worst ${take.worstMs.toFixed(1)} ms | n ${take.frames}`
+      : `fps 1s ${fps.recentFps.toFixed(1)} | no take yet`;
+
     getPanel().draw([
-      `fps 1s ${fps.recentFps.toFixed(1)} | take avg ${fps.avgFps.toFixed(1)} | worst ${fps.worstMs.toFixed(1)} ms | n ${fps.frames}`,
+      takeLine,
       `target ${frameRate ? `${frameRate} Hz` : "n/a (flat page)"} | VF ${vfWidth}x${vfHeight}`,
       `lens ${lensMm} mm | vFOV ${vFovDeg(lensMm, FULL_FRAME, FORMAT_21_9).toFixed(1)} deg | smoothing ${SMOOTHING_LEVELS[store.smoothingIndex].name}`,
       `phase ${store.phase} ${runtime.phaseClock.toFixed(1)} s | grabbed ${runtime.grabbed ? "yes" : "no"} | handheld ${HANDHELD_IMPLEMENTED ? "custom" : "pass-through"}`,
@@ -2784,6 +2815,7 @@ import { STAGE_BACKGROUND } from "@/stage/render/clip-constants";
 import type { TakeSummary } from "../../takes-plugin";
 import { FORMAT_21_9, FULL_FRAME, vFovDeg } from "../camera/fov";
 import { parseTake, poseAt, type Take } from "../camera/take";
+import { CLIP_ASPECT, LENS_FAR_M, LENS_NEAR_M } from "../constants";
 import { StageMount } from "../xr/StageMount";
 
 type RigProps = { take: Take; playing: boolean; restartToken: number; onTime(tSec: number): void };
@@ -2800,8 +2832,8 @@ function LensRig({ take, playing, restartToken, onTime }: RigProps) {
 
   useEffect(() => {
     camera.fov = vFovDeg(take.lensMm, FULL_FRAME, FORMAT_21_9);
-    camera.near = 0.05;
-    camera.far = 200;
+    camera.near = LENS_NEAR_M;
+    camera.far = LENS_FAR_M;
     camera.updateProjectionMatrix();
   }, [camera, take]);
 
@@ -2894,7 +2926,7 @@ export function ReplayPage() {
 
       {take && (
         <>
-          <div style={{ width: "100%", aspectRatio: "21 / 9", background: "#000" }}>
+          <div style={{ width: "100%", aspectRatio: String(CLIP_ASPECT), background: "#000" }}>
             <Canvas flat>
               <color attach="background" args={[STAGE_BACKGROUND]} />
               <StageMount />
@@ -3535,6 +3567,11 @@ Flat-page keys: `R` record or stop, `P` replay, `[` `]` lens, `S` smoothing, `-`
 
 Work top to bottom. It takes about 20 minutes. Write the results into the table at the end.
 
+Before the timed questions: clear the headset's boundary (Guardian) prompt, enter VR, and spend ten seconds on
+locomotion, which no desktop check has exercised yet: aim the LEFT trigger's arc at the floor and release to
+teleport, then flick the LEFT stick to snap-turn. During a jitter test, or a take you mean to keep, keep your left
+hand off the stick and the trigger: a teleport or a turn is recorded faithfully and ruins that trial.
+
 If the panel says `handheld pass-through`, the smoothing levels do nothing yet. Write the body of
 `src/camera/handheld.ts` first (about ten lines, trade-offs are in the file), or ask for the reference version.
 
@@ -3544,8 +3581,10 @@ how many seconds from saving to seeing it?
 
 **Question 1, frame rate.** Enter VR. Line 2 of the panel shows `target NN Hz`. Grab the camera, pull the right
 trigger, operate for 30 seconds (the strip under the picture counts), pull the trigger again. Read line 1:
-`take avg` and `worst`. It passes when `take avg` is within 1 of the target and `worst` stays under
-27.8 ms at 72 Hz, or 22.2 ms at 90 Hz. Do it once per viewfinder size (right stick up and down).
+`last take avg` and `worst`. Those two numbers are frozen at the cut, so saving the take cannot disturb them.
+It passes when `last take avg` is within 1 of the target and `worst` stays under twice the frame budget
+(2 x 1000 / target: 27.8 ms at 72 Hz, 22.2 ms at 90 Hz, 16.7 ms at 120 Hz). Do it once per viewfinder size.
+Change the size between takes (right stick up and down): it is locked while a take or a test is running.
 Write down the largest size that passes.
 
 **Question 2, steadiness.** Flick the lens to 85 mm. Frame the doll's head and shoulders. For each smoothing

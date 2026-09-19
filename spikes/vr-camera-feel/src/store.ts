@@ -64,7 +64,11 @@ export const useSpikeStore = create<SpikeState>()((set, get) => ({
     if (get().phase !== "idle") return;
     set((s) => ({ smoothingIndex: (s.smoothingIndex + 1) % SMOOTHING_LEVELS.length }));
   },
-  stepVfRes: (dir) => set((s) => ({ vfResIndex: clamp(s.vfResIndex + dir, 0, VF_RESOLUTIONS.length - 1) })),
+  // Changing the size recreates the render target, which can hitch. So it is locked while anything is being measured.
+  stepVfRes: (dir) => {
+    if (get().phase !== "idle") return;
+    set((s) => ({ vfResIndex: clamp(s.vfResIndex + dir, 0, VF_RESOLUTIONS.length - 1) }));
+  },
   togglePanel: () => set((s) => ({ panelVisible: !s.panelVisible })),
 
   startRecording: () => {

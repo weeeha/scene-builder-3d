@@ -10,8 +10,13 @@ export const NATIVE_WEBXR = typeof navigator !== "undefined" && "xr" in navigato
 // emulator (IWER 2.4) refuses to install while a native navigator.xr exists. So on localhost we ask the native API
 // first, and only when it cannot do immersive VR do we shadow it with `undefined`, which lets the emulator in.
 // A real headset reached through `adb reverse` also says "localhost": it answers true and keeps its native runtime.
+// Only a clear "no" removes the native object. A rejection or a call that hangs counts as "keep native", and the
+// 1.5 s cap guarantees this top-level await can never leave the page blank.
 if (NATIVE_WEBXR && window.location.hostname === "localhost") {
-  const nativeVr = await navigator.xr!.isSessionSupported("immersive-vr").catch(() => false);
+  const nativeVr = await Promise.race([
+    navigator.xr!.isSessionSupported("immersive-vr").catch(() => true),
+    new Promise<boolean>((resolve) => setTimeout(() => resolve(true), 1500)),
+  ]);
   if (!nativeVr) Object.defineProperty(navigator, "xr", { value: undefined, configurable: true });
 }
 

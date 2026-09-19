@@ -18,6 +18,8 @@ export const runtime = {
   /** Seconds since the current phase began. */
   phaseClock: 0,
   fps: createFpsMeter(),
+  /** Frame-rate numbers of the last finished take, frozen at the moment of "cut". Null until one exists. */
+  takeFps: null as { avgFps: number; worstMs: number; frames: number } | null,
   /** Seconds since page load. Drives the scripted path in flat mode. */
   flatClock: 0,
   inXR: false,

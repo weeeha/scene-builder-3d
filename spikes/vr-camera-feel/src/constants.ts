@@ -26,6 +26,10 @@ export const GRAB_DISTANCE_M = 0.25;
 export const JITTER_TEST_SEC = 10;
 export const CLIP_ASPECT = 21 / 9;
 
+/** Clip planes of the lens. The live camera and the replay page share them, so a take replays exactly. */
+export const LENS_NEAR_M = 0.05;
+export const LENS_FAR_M = 200;
+
 /** The set sits three metres in front of the operator, who starts at the world origin facing -Z. */
 export const SET_CENTER: Vec3 = [0, 0, -3];
 

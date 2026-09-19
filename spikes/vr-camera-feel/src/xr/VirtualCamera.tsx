@@ -5,7 +5,7 @@ import { FORMAT_21_9, FULL_FRAME, vFovDeg } from "../camera/fov";
 import { handheld } from "../camera/handheld";
 import type { CameraPose } from "../camera/pose";
 import { poseAt } from "../camera/take";
-import { CLIP_ASPECT, LENSES_MM, SMOOTHING_LEVELS } from "../constants";
+import { CLIP_ASPECT, LENSES_MM, LENS_FAR_M, LENS_NEAR_M, SMOOTHING_LEVELS } from "../constants";
 import { scriptedHandPose } from "../flat/scripted-path";
 import { runtime } from "../runtime";
 import { useSpikeStore } from "../store";
@@ -111,7 +111,7 @@ export function VirtualCamera({ children }: { children?: ReactNode }) {
           <meshStandardMaterial color="#111318" />
         </mesh>
       </group>
-      <perspectiveCamera ref={lens} near={0.05} far={200} />
+      <perspectiveCamera ref={lens} near={LENS_NEAR_M} far={LENS_FAR_M} />
       {children}
     </group>
   );

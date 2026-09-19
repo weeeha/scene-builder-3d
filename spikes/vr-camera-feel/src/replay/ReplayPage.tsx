@@ -5,6 +5,7 @@ import { STAGE_BACKGROUND } from "@/stage/render/clip-constants";
 import type { TakeSummary } from "../../takes-plugin";
 import { FORMAT_21_9, FULL_FRAME, vFovDeg } from "../camera/fov";
 import { parseTake, poseAt, type Take } from "../camera/take";
+import { CLIP_ASPECT, LENS_FAR_M, LENS_NEAR_M } from "../constants";
 import { StageMount } from "../xr/StageMount";
 
 type RigProps = { take: Take; playing: boolean; restartToken: number; onTime(tSec: number): void };
@@ -21,8 +22,8 @@ function LensRig({ take, playing, restartToken, onTime }: RigProps) {
 
   useEffect(() => {
     camera.fov = vFovDeg(take.lensMm, FULL_FRAME, FORMAT_21_9);
-    camera.near = 0.05;
-    camera.far = 200;
+    camera.near = LENS_NEAR_M;
+    camera.far = LENS_FAR_M;
     camera.updateProjectionMatrix();
   }, [camera, take]);
 
@@ -115,7 +116,7 @@ export function ReplayPage() {
 
       {take && (
         <>
-          <div style={{ width: "100%", aspectRatio: "21 / 9", background: "#000" }}>
+          <div style={{ width: "100%", aspectRatio: String(CLIP_ASPECT), background: "#000" }}>
             <Canvas flat>
               <color attach="background" args={[STAGE_BACKGROUND]} />
               <StageMount />

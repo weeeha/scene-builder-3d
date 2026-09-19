@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { useXR } from "@react-three/xr";
-import { pushFrame, resetFpsMeter } from "../camera/fps-meter";
+import { pushFrame, readFpsMeter, resetFpsMeter } from "../camera/fps-meter";
 import { measureJitter } from "../camera/jitter";
 import { makeTake, pushSample, sampleCount, serializeTake, type Take } from "../camera/take";
 import { JITTER_TEST_SEC, LENSES_MM, SMOOTHING_LEVELS } from "../constants";
@@ -10,8 +10,9 @@ import { useSpikeStore } from "../store";
 
 async function saveTake(take: Take): Promise<void> {
   const { setSaveStatus } = useSpikeStore.getState();
+  setSaveStatus(`saving take ${take.number}...`); // so a stuck save never reads as the previous take's success
   try {
-    const response = await fetch("/takes", { method: "POST", body: serializeTake(take) });
+    const response = await fetch("/takes", { method: "POST", body: serializeTake(take), signal: AbortSignal.timeout(5000) });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     setSaveStatus(`saved take ${take.number} (${take.durationSec.toFixed(1)} s)`);
   } catch (error) {
@@ -24,6 +25,10 @@ async function saveTake(take: Take): Promise<void> {
 export function stopRecording(): void {
   const store = useSpikeStore.getState();
   if (store.phase !== "recording") return;
+  // Freeze the take's frame-rate numbers first. Everything below (building, serializing and posting the take) is
+  // bookkeeping, and it must not leak into the measurement the panel shows for question 1.
+  const fps = readFpsMeter(runtime.fps);
+  runtime.takeFps = { avgFps: fps.avgFps, worstMs: fps.worstMs, frames: fps.frames };
   if (sampleCount(runtime.samples) < 2) {
     runtime.samples = [];
     store.toIdle();
@@ -41,7 +46,7 @@ export function stopRecording(): void {
   });
   runtime.samples = [];
   store.finishRecording(take);
-  void saveTake(take);
+  setTimeout(() => void saveTake(take), 0); // serializing thousands of numbers stays off the XR frame's call stack
 }
 
 /** "Action" and "cut" on one control: the right trigger in VR, the R key on the flat page. */
@@ -55,6 +60,7 @@ export function toggleRecording(): void {
   runtime.samples = [];
   runtime.phaseClock = 0;
   resetFpsMeter(runtime.fps); // question 1 reads fps over exactly one take
+  runtime.takeFps = null;
   pushSample(runtime.samples, 0, runtime.cameraPose);
 }
 
