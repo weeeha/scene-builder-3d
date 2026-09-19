@@ -1,0 +1,489 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+@source "../**/*.{ts,tsx}";
+@source "../**/*.mdx";
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   TOKEN ARCHITECTURE — three tiers, one direction.
+
+     Layer 1 · Primitives   raw ramps. No component ever reads these.
+     Layer 2 · Semantic     the ONLY place light/dark values are decided.
+     Layer 3 · shadcn alias maps shadcn's names onto Layer 2.
+
+   The inversion that makes this work: the semantic layer owns the values and
+   shadcn's names are the alias — not the other way round. That is why any
+   stock shadcn component can be dropped in unmodified and inherit the theme.
+
+   To rebrand: edit Layer 1 ramps + the accent in Layer 2. Nothing else.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@theme inline {
+    --font-heading: var(--font-sans);
+    --color-sidebar-ring: var(--sidebar-ring);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar: var(--sidebar);
+    --color-chart-5: var(--chart-5);
+    --color-chart-4: var(--chart-4);
+    --color-chart-3: var(--chart-3);
+    --color-chart-2: var(--chart-2);
+    --color-chart-1: var(--chart-1);
+    --color-required: var(--required);
+    --color-required-foreground: var(--required-foreground);
+    /* Semantic layer → utilities (group-prefixed: bg-surface-card,
+       text-text-secondary, border-border-hover, bg-status-draft, …) */
+    --color-surface-page: var(--surface-page);
+    --color-surface-header: var(--surface-header);
+    --color-surface: var(--surface);
+    --color-surface-card: var(--surface-card);
+    --color-surface-input: var(--surface-input);
+    --color-surface-popover: var(--surface-popover);
+    --color-surface-hover: var(--surface-hover);
+    --color-surface-secondary: var(--surface-secondary);
+    --color-surface-tertiary: var(--surface-tertiary);
+    --color-surface-tooltip: var(--surface-tooltip);
+    --color-surface-sidebar: var(--surface-sidebar);
+    --color-text-primary: var(--text-primary);
+    --color-text-secondary: var(--text-secondary);
+    --color-text-tertiary: var(--text-tertiary);
+    --color-text-inverted: var(--text-inverted);
+    --color-text-on-tooltip: var(--text-on-tooltip);
+    --color-text-on-accent: var(--text-on-accent);
+    --color-text-popover: var(--text-popover);
+    --color-text-accent: var(--text-accent);
+    --color-text-disabled: var(--text-disabled);
+    --color-text-destructive: var(--text-destructive);
+    --color-icon-primary: var(--icon-primary);
+    --color-icon-secondary: var(--icon-secondary);
+    --color-icon-accent: var(--icon-accent);
+    --color-icon-inverted: var(--icon-inverted);
+    --color-icon-destructive: var(--icon-destructive);
+    --color-button-primary: var(--button-primary);
+    --color-button-secondary: var(--button-secondary);
+    --color-button-tertiary: var(--button-tertiary);
+    --color-button-tertiary-foreground: var(--button-tertiary-foreground);
+    --color-button-destructive: var(--button-destructive);
+    --color-button-select-state: var(--button-select-state);
+    --color-secondary-accent: var(--secondary-accent);
+    --color-accent-color: var(--accent-color);
+    --color-accent-bold: var(--accent-bold);
+    --color-accent-secondary: var(--accent-secondary);
+    --color-accent-info: var(--accent-info);
+    --color-accent-critical: var(--accent-critical);
+    --color-accent-alert: var(--accent-alert);
+    --color-border-hover: var(--border-hover);
+    --color-border-focus-ring: var(--border-focus-ring);
+    --color-border-selected: var(--border-selected);
+    --color-status-approved: var(--status-approved);
+    --color-status-pending: var(--status-pending);
+    --color-status-action: var(--status-action);
+    --color-status-rejected: var(--status-rejected);
+    --color-status-expired: var(--status-expired);
+    --color-status-draft: var(--status-draft);
+    --color-status-approved-soft: var(--status-approved-soft);
+    --color-status-pending-soft: var(--status-pending-soft);
+    --color-status-action-soft: var(--status-action-soft);
+    --color-status-approved-border: var(--status-approved-border);
+    --color-status-pending-border: var(--status-pending-border);
+    --color-status-action-border: var(--status-action-border);
+    --color-ring: var(--ring);
+    --color-input: var(--input);
+    --color-border: var(--border);
+    --color-destructive: var(--destructive);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-accent: var(--accent);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-muted: var(--muted);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-secondary: var(--secondary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-primary: var(--primary);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-popover: var(--popover);
+    --color-card-foreground: var(--card-foreground);
+    --color-card: var(--card);
+    --color-foreground: var(--foreground);
+    --color-background: var(--background);
+    --radius-sm: 4px;
+    --radius-md: 6px;
+    --radius-lg: var(--radius-button);     /* 8px — buttons, inputs, menus, popovers */
+    --radius-xl: var(--radius-card);       /* 16px — cards */
+    --radius-2xl: var(--radius-popup);     /* 24px — dialogs */
+    --radius-3xl: 32px;
+    --radius-4xl: 40px;
+    --font-sans: var(--font-sans);
+    --font-site: var(--font-site);
+    --font-serif: var(--font-serif);
+    /* Motion → utilities (duration-fast, ease-standard, …). Same three-tier
+       rule as colour: components read these names, never raw ms. */
+    --duration-fast: var(--motion-fast);
+    --duration-base: var(--motion-base);
+    --duration-slow: var(--motion-slow);
+    --duration-ambient: var(--motion-ambient);
+    --ease-standard: var(--motion-ease-standard);
+    --ease-enter: var(--motion-ease-enter);
+    --ease-exit: var(--motion-ease-exit);
+}
+
+:root {
+    /* ═══ Motion ═══
+       The four durations already in use across the kit, named. Pick by what
+       is moving, not by how long it should take:
+
+         fast      state changes in place — hover, focus ring, colour swap
+         base      something appears or moves a short distance — dropdown,
+                   tooltip, popover, toast
+         slow      a large surface enters — dialog, sheet, accordion panel
+         ambient   looping, never waited on — shimmer, typing indicator
+
+       Easing: `standard` for anything that starts and ends on screen;
+       `enter` (decelerate) for things arriving; `exit` (accelerate) for
+       things leaving. */
+    --motion-fast: 100ms;
+    --motion-base: 200ms;
+    --motion-slow: 300ms;
+    --motion-ambient: 1000ms;
+    --motion-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+    --motion-ease-enter: cubic-bezier(0, 0, 0, 1);
+    --motion-ease-exit: cubic-bezier(0.3, 0, 1, 1);
+
+    /* ═══ Layer 1 · Primitives ═══
+       Two ramps on purpose: --base drives surfaces, --ink drives content
+       (text, icons, borders). Splitting them lets you warm or cool the
+       surfaces without dragging the text along.
+
+       These are neutral placeholders. Replace both ramps with your project's
+       ramps and everything downstream re-themes. Stock Tailwind palettes are
+       used as literal hex in Layer 2, with the palette named in a comment. */
+    --base-50: #fafafa;  --base-100: #f5f5f5; --base-200: #e5e5e5; --base-300: #d4d4d4;
+    --base-400: #a3a3a3; --base-500: #737373; --base-600: #525252; --base-700: #404040;
+    --base-800: #262626; --base-900: #171717; --base-950: #0a0a0a;
+    --ink-50: #fafafa;   --ink-100: #f4f4f5;  --ink-200: #e4e4e7;  --ink-300: #d4d4d8;
+    --ink-400: #a1a1aa;  --ink-500: #71717a;  --ink-600: #52525b;  --ink-700: #3f3f46;
+    --ink-800: #27272a;  --ink-900: #18181b;  --ink-950: #09090b;
+
+    /* ═══ Layer 2 · Semantic tokens (Light mode).
+       Light/dark values live ONLY at this layer. ═══ */
+    /* Surface */
+    --surface-page: var(--base-50);
+    --surface-header: var(--base-50);
+    --surface: #ffffff;
+    --surface-card: #ffffff;
+    --surface-input: #ffffff;
+    --surface-popover: #ffffff;
+    --surface-hover: #09090b1a;            /* ink/950 @ 10% — translucent scrim over popover
+                                              surfaces (menu/list item hover). Literal alpha hex:
+                                              Figma cannot alias-with-alpha, so this stays a value */
+    --surface-secondary: var(--base-100);
+    --surface-tertiary: var(--base-200);
+    --surface-tooltip: #27272a;            /* zinc/800 (mode-invariant) */
+    --surface-sidebar: var(--base-50);     /* page-like in light, card-like in dark — no other
+                                              surface token matches it in BOTH modes */
+    /* Text */
+    --text-primary: var(--ink-950);
+    --text-secondary: var(--ink-600);
+    --text-tertiary: var(--ink-400);
+    --text-inverted: var(--ink-50);
+    --text-popover: var(--ink-950);
+    --text-accent: #171717;                /* ACCENT — neutral/900. Rebrand: change this + the 5 below */
+    --text-on-accent: #fafafa;             /* ACCENT — neutral/50. The label ON an accent fill, so it
+                                              inverts opposite --text-accent. NOT --text-inverted, whose
+                                              dark value is the ink ramp (#09090b), not the accent's */
+    --text-on-tooltip: #fafafa;            /* zinc/50 — pairs with --surface-tooltip, which is
+                                              mode-invariant, so this must NOT flip either. Same
+                                              reasoning as --text-on-accent: a general text token
+                                              (--text-inverted) goes near-black in dark and would
+                                              vanish on the tooltip's fixed dark surface. */
+    --text-disabled: var(--ink-300);
+    --text-destructive: #e7000b;           /* red/600 */
+    /* Icon */
+    --icon-primary: var(--ink-950);
+    --icon-secondary: #57534d;             /* stone/600 (mode-invariant) */
+    --icon-accent: #171717;                /* ACCENT — neutral/900 */
+    --icon-inverted: var(--ink-50);
+    --icon-destructive: #e7000b;           /* red/600 */
+    /* Button */
+    --button-primary: #171717;             /* ACCENT — neutral/900 */
+    --button-secondary: #f4f4f5;           /* zinc/100 */
+    --button-tertiary: transparent;
+    --button-tertiary-foreground: var(--ink-950);
+    --button-destructive: #e7000b;         /* red/600 */
+    --button-select-state: #0084d1;        /* sky/600 */
+    /* Accent — --secondary-accent (soft neutral surface) and --accent-secondary
+       (warm) are deliberately distinct; check tokens.ts usage strings before
+       reaching for either. Also --accent (shadcn, = button-primary) ≠
+       --accent-color ≠ --accent-bold — all three differ in dark mode. */
+    --secondary-accent: var(--ink-100);
+    --accent-color: var(--ink-900);
+    --accent-bold: #171717;                /* ACCENT — neutral/900 */
+    --accent-secondary: #e17100;           /* amber/600 */
+    --accent-info: #155dfc;                /* blue/600 (mode-invariant) */
+    --accent-critical: #e7000b;            /* red/600 (mode-invariant) */
+    --accent-alert: #ff6900;               /* orange/500 (mode-invariant) */
+    /* Border — note: --border and --input double as the shadcn names (same token) */
+    --border: var(--ink-200);
+    --border-hover: var(--ink-300);
+    --input: var(--ink-200);
+    --border-focus-ring: var(--ink-400);
+    --border-selected: #171717;            /* ACCENT — neutral/900 (sky/600 in dark) */
+    /* Charts (mode-invariant) */
+    --chart-1: #2b7fff;                    /* blue/500 */
+    --chart-2: #00a6f4;                    /* sky/500 */
+    --chart-3: #00bba7;                    /* teal/500 */
+    --chart-4: #8e51ff;                    /* violet/500 */
+    --chart-5: #f6339a;                    /* pink/500 */
+    /* Workflow status — generic states for any review/approval flow.
+       Aliases whose targets flip are RE-DECLARED in .dark (var() substitutes at
+       the declaring element, so a :root-only alias keeps its light value inside
+       a nested .dark wrapper — it is only coincidentally fine when .dark sits on
+       <html>). --status-expired is primitive-based and has an explicit override. */
+    --status-approved: #008236;            /* green/700 */
+    --status-pending: #e17100;             /* amber/600 */
+    --status-action: #f54a00;              /* orange/600 */
+    --status-rejected: var(--button-destructive);
+    --status-expired: var(--ink-500);
+    --status-draft: var(--surface-secondary);
+    /* Soft tints + borders for status chips/callouts. */
+    --status-approved-soft: #f0fdf4;       /* green/50 */
+    --status-pending-soft: #fffbeb;        /* amber/50 */
+    --status-action-soft: #fff7ed;         /* orange/50 */
+    --status-approved-border: #b9f8cf;     /* green/200 */
+    --status-pending-border: #fee685;      /* amber/200 */
+    --status-action-border: #ffd6a7;       /* orange/200 */
+
+    /* ═══ Layer 3 · shadcn compatibility aliases.
+       Components consume these; values come from Layer 2. Tokens with no
+       semantic source keep literals and are marked. NOTE: var() substitution
+       happens at the declaring element, so aliases whose targets flip must be
+       re-declared in .dark to work inside nested .dark wrappers. ═══ */
+    --background: var(--surface-page);
+    --foreground: var(--text-primary);
+    --card: var(--surface-card);
+    --card-foreground: var(--text-primary);
+    --popover: var(--surface-popover);
+    --popover-foreground: var(--text-popover);
+    --primary: var(--button-primary);
+    --primary-foreground: #fafafa;         /* neutral/50 — no semantic source */
+    --secondary: var(--button-secondary);
+    --secondary-foreground: #18181b;       /* zinc/900 — no semantic source */
+    --muted: var(--surface-secondary);
+    --muted-foreground: var(--text-secondary);
+    --accent: var(--button-primary);       /* deliberate: brand accent = primary */
+    --accent-foreground: #fafafa;          /* neutral/50 — no semantic source */
+    --destructive: var(--button-destructive);
+    --ring: var(--border-focus-ring);
+    --required: var(--status-action);
+    --required-foreground: #fffbf5;        /* warm near-white — no semantic source */
+    --sidebar: var(--surface-sidebar);
+    --sidebar-foreground: var(--text-primary);
+    --sidebar-primary: var(--button-primary);
+    --sidebar-primary-foreground: var(--text-on-accent);
+    --sidebar-accent: var(--secondary-accent);
+    --sidebar-accent-foreground: var(--accent-color);
+    --sidebar-border: var(--border);
+    --sidebar-ring: var(--border-focus-ring);
+
+    /* ═══ Dimension tokens ═══
+       Sizes only — color tokens sharing these prefixes (--icon-*, --button-*)
+       live in Layer 2 above. */
+    --radius-button: 8px;
+    --radius-control: 8px;
+    --radius-card: 16px;
+    --radius-popup: 24px;
+    --radius-rounded: 99px;
+    --radius-none: 0px;
+    --control-height-default: 32px;
+    --control-height-big: 40px;
+    --control-height-mega: 56px;
+    --control-header-nav: 48px;
+    --control-input-max: 360px;
+    --control-button-margin: 10px;
+    --control-margin: 10px;
+    --control-popup-margin: 24px;
+    --button-height-normal: 32px;
+    --button-height-big: 40px;
+    --button-height-small: 28px;
+    --button-big-margin: 16px;
+    --space-hairline: 2px;
+    --space-micro: 4px;
+    --space-tiny: 6px;
+    --space-between: 12px;
+    --space-between-small: 8px;
+    --space-vertical: 16px;
+    --space-title-hero: 32px;
+    --space-hero-margin: 32px;
+    --space-section-vert: 24px;
+    --card-margin: 16px;
+    --card-list-spacing: 10px;
+    --icon-tiny: 16px;
+    --icon-small: 20px;
+    --icon-medium: 24px;
+    --icon-hero: 40px;
+    --border-width-default: 1px;
+    --border-width-selected: 2px;
+    --icon-stroke-small: 1px;
+    --icon-stroke-bold: 2px;
+    --icon-stroke-hero: 3px;
+    --table-line-normal: 36px;
+    --table-line-big: 44px;
+    --page-form-width: 640px;
+    --page-sheet-width: 720px;
+
+    --radius: var(--radius-button);        /* base for the remaining var(--radius) refs */
+
+    /* Font weights — adopt progressively; Tailwind font-medium etc. NOT overridden.
+       --font-serif lives here (not only in @theme inline, which inlines values and
+       emits no runtime custom property) so var(--font-serif) resolves at runtime. */
+    --font-serif: Georgia, "Times New Roman", serif;
+    --weight-regular: 500;
+    --weight-medium: 600;
+    --weight-heavy: 700;
+}
+
+.dark {
+    /* ═══ Layer 2 · Semantic tokens (Dark) ═══ */
+    --surface-page: var(--ink-950);
+    --surface-header: var(--ink-950);
+    --surface: var(--ink-900);
+    --surface-card: var(--ink-900);
+    --surface-input: var(--ink-900);
+    --surface-popover: var(--ink-900);
+    --surface-hover: #fafafa1a;            /* ink/50 @ 10% */
+    --surface-secondary: #27272a;          /* zinc/800 */
+    --surface-tertiary: #27272a;           /* zinc/800 */
+    --surface-sidebar: var(--ink-900);
+    --text-primary: var(--ink-50);
+    --text-secondary: var(--ink-400);
+    --text-tertiary: var(--ink-600);
+    --text-inverted: var(--ink-950);
+    --text-popover: var(--ink-50);
+    --text-accent: #fafafa;                /* ACCENT — neutral/50 (inverts in dark) */
+    --text-on-accent: #171717;             /* ACCENT — neutral/900 (inverts in dark) */
+    --text-disabled: var(--ink-700);
+    --text-destructive: #ff6467;           /* red/400 */
+    --icon-primary: var(--ink-50);
+    --icon-accent: #fafafa;                /* ACCENT — neutral/50 */
+    --icon-inverted: var(--ink-950);
+    --icon-destructive: #ff6467;           /* red/400 */
+    --button-primary: #fafafa;             /* ACCENT — neutral/50 (inverts in dark) */
+    --button-secondary: #27272a;           /* zinc/800 */
+    --button-tertiary-foreground: var(--ink-50);
+    --button-destructive: #ff6467;         /* red/400 */
+    --button-select-state: #00598a;        /* sky/800 */
+    --secondary-accent: var(--ink-800);
+    --accent-color: var(--ink-50);
+    --accent-bold: var(--ink-50);          /* intentionally neutral in dark, not the accent */
+    --accent-secondary: var(--ink-50);
+    --border: #ffffff1a;                   /* white 10% */
+    --border-hover: #ffffff1a;             /* white 10% */
+    --input: #ffffff26;                    /* white 15% */
+    --border-focus-ring: var(--ink-500);
+    --border-selected: #0084d1;            /* sky/600 */
+    /* Workflow status — re-declared here because var() substitutes at the
+       DECLARING element: a :root-only alias keeps its light value inside a
+       nested .dark wrapper. */
+    --status-approved: #05df72;            /* green/400 */
+    --status-pending: #ffb900;             /* amber/400 */
+    --status-action: #ff8904;              /* orange/400 */
+    --status-rejected: var(--button-destructive);
+    --status-draft: var(--surface-secondary);
+    --status-expired: var(--ink-400);
+    --status-approved-soft: #032e15;       /* green/950 */
+    --status-pending-soft: #461901;        /* amber/950 */
+    --status-action-soft: #441306;         /* orange/950 */
+    --status-approved-border: #016630;     /* green/800 */
+    --status-pending-border: #973c00;      /* amber/800 */
+    --status-action-border: #9f2d00;       /* orange/800 */
+
+    /* ═══ Layer 3 · dark re-declarations ═══
+       Aliases whose Layer-2 targets flip are re-declared with the SAME var()
+       expression so they re-resolve at the .dark element — this is what makes
+       section-scoped dark wrappers (e.g. <section class="dark">) work; a
+       :root-only alias keeps its light value there. Plus dark values for
+       tokens with no semantic source. */
+    --background: var(--surface-page);
+    --foreground: var(--text-primary);
+    --card: var(--surface-card);
+    --card-foreground: var(--text-primary);
+    --popover: var(--surface-popover);
+    --popover-foreground: var(--text-popover);
+    --primary: var(--button-primary);
+    --secondary: var(--button-secondary);
+    --muted: var(--surface-secondary);
+    --muted-foreground: var(--text-secondary);
+    --accent: var(--button-primary);       /* deliberate: brand accent = primary */
+    --destructive: var(--button-destructive);
+    --ring: var(--border-focus-ring);
+    --secondary-foreground: #fafafa;       /* zinc/50 — no semantic source */
+    --primary-foreground: #171717;         /* neutral/900 — dark label on the light accent */
+    --accent-foreground: #171717;          /* neutral/900 — no semantic source */
+    --sidebar: var(--surface-sidebar);
+    --sidebar-foreground: var(--text-primary);
+    --sidebar-primary: var(--button-primary);
+    --sidebar-primary-foreground: var(--text-on-accent);
+    --sidebar-accent: var(--secondary-accent);
+    --sidebar-accent-foreground: var(--accent-color);
+    --sidebar-border: var(--border);
+    --sidebar-ring: var(--border-focus-ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+    }
+  body {
+    @apply bg-background text-foreground;
+    }
+  button:not(:disabled), [role="button"]:not(:disabled) {
+    cursor: pointer;
+    }
+}
+
+@layer components {
+  .ai-response {
+    @apply text-foreground text-[15px] leading-relaxed;
+  }
+  .ai-response a { @apply text-primary underline underline-offset-2; }
+  .ai-response :not(pre) > code {
+    @apply bg-muted text-foreground rounded-[6px] px-1.5 py-0.5 font-mono text-[0.85em];
+  }
+  .ai-response pre {
+    @apply bg-muted text-foreground overflow-x-auto rounded-lg p-3 text-sm;
+  }
+  .ai-response ul { @apply my-2 flex list-disc flex-col gap-1.5 ps-5; }
+  .ai-response ol { @apply my-2 flex list-decimal flex-col gap-1.5 ps-5; }
+  .ai-response p:not(:last-child) { @apply mb-3; }
+  .ai-response h1, .ai-response h2, .ai-response h3 {
+    @apply font-sans text-foreground mt-4 mb-2 font-medium;
+  }
+  .ai-response blockquote { @apply border-foreground/30 text-muted-foreground border-l-2 ps-3; }
+}
+
+/* Text shimmer sweep used by the AI Shimmer component. */
+@keyframes shimmer {
+  0% { background-position: 100% center; }
+  100% { background-position: 0% center; }
+}
+
+/* The reason motion is tokenised: one query, and every transition in the kit
+   respects the OS setting — including components written after this line.
+   Not zero, because 1ms still fires transitionend; layouts that wait on it
+   keep working. Looping decoration stops outright. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 1ms;
+    --motion-base: 1ms;
+    --motion-slow: 1ms;
+    --motion-ambient: 1ms;
+  }
+  [class*="animate-"] {
+    animation: none !important;
+  }
+}

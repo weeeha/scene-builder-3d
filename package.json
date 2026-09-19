@@ -2,6 +2,7 @@
   "name": "scene-builder-3d",
   "version": "0.1.0",
   "private": true,
+  "workspaces": ["packages/*"],
   "type": "module",
   "engines": {
     "node": ">=22"
@@ -17,6 +18,8 @@
     "e2e": "playwright test"
   },
   "dependencies": {
+    "@weeeha/ui": "*",
+    "next-themes": "^0.4.6",
     "react": "^19.2.4",
     "react-dom": "^19.2.4"
   },
