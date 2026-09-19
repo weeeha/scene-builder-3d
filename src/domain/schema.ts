@@ -3,13 +3,13 @@ import type { Project } from "@/domain/types";
 
 const vec3Schema = z.tuple([z.number(), z.number(), z.number()]);
 
-const transformSchema = z.object({
+const transformSchema = z.strictObject({
   position: vec3Schema,
   rotationY: z.number(),
   scale: z.number(),
 });
 
-const keyframeSchema = z.object({
+const keyframeSchema = z.strictObject({
   t: z.number(),
   value: vec3Schema,
 });
@@ -24,7 +24,7 @@ const stageObjectBase = {
   visible: z.boolean(),
 };
 
-const primitiveObjectSchema = z.object({
+const primitiveObjectSchema = z.strictObject({
   ...stageObjectBase,
   kind: z.literal("primitive"),
   shape: primitiveShapeSchema,
@@ -32,14 +32,14 @@ const primitiveObjectSchema = z.object({
   color: z.string(),
 });
 
-const dollObjectSchema = z.object({
+const dollObjectSchema = z.strictObject({
   ...stageObjectBase,
   kind: z.literal("doll"),
   pose: poseNameSchema,
   color: z.string(),
 });
 
-const propObjectSchema = z.object({
+const propObjectSchema = z.strictObject({
   ...stageObjectBase,
   kind: z.literal("prop"),
   assetId: z.string(),
@@ -52,7 +52,7 @@ const stageObjectSchema = z.discriminatedUnion("kind", [
   propObjectSchema,
 ]);
 
-const propAssetSchema = z.object({
+const propAssetSchema = z.strictObject({
   id: z.string(),
   name: z.string(),
   tags: z.array(z.string()),
@@ -64,13 +64,13 @@ const propAssetSchema = z.object({
   thumbKey: z.string().optional(),
 });
 
-const objectOverrideSchema = z.object({
+const objectOverrideSchema = z.strictObject({
   transform: transformSchema.optional(),
   pose: poseNameSchema.optional(),
   visible: z.boolean().optional(),
 });
 
-const shotCameraSchema = z.object({
+const shotCameraSchema = z.strictObject({
   lensMm: z.number(),
   position: z.array(keyframeSchema),
   aim: z.array(keyframeSchema),
@@ -78,12 +78,12 @@ const shotCameraSchema = z.object({
 
 const shotTypeSchema = z.enum(["WIDE", "MED", "CU", "POV"]);
 
-const shotThumbSchema = z.object({
+const shotThumbSchema = z.strictObject({
   blobKey: z.string(),
   stateHash: z.string(),
 });
 
-const shotSchema = z.object({
+const shotSchema = z.strictObject({
   id: z.string(),
   name: z.string(),
   type: shotTypeSchema,
@@ -93,17 +93,17 @@ const shotSchema = z.object({
   thumb: shotThumbSchema.optional(),
 });
 
-const sceneSchema = z.object({
+const sceneSchema = z.strictObject({
   id: z.string(),
   name: z.string(),
   notes: z.string(),
-  set: z.object({ objects: z.array(stageObjectSchema) }),
+  set: z.strictObject({ objects: z.array(stageObjectSchema) }),
   shots: z.array(shotSchema),
 });
 
 export const CURRENT_SCHEMA_VERSION = 1;
 
-export const projectSchema: z.ZodType<Project> = z.object({
+export const projectSchema: z.ZodType<Project> = z.strictObject({
   id: z.string(),
   name: z.string(),
   schemaVersion: z.literal(1),

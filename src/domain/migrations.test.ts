@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
-import { createPrimitive, createProject, createScene, createShot } from "@/domain/factories";
+import { createDoll, createPrimitive, createProject, createScene, createShot } from "@/domain/factories";
 import { migrateProject, ProjectInvalidError, ProjectVersionError } from "@/domain/migrations";
 
 describe("migrateProject", () => {
@@ -32,5 +32,31 @@ describe("migrateProject", () => {
     expect(() => migrateProject("not a project")).toThrow(ProjectInvalidError);
     expect(() => migrateProject(null)).toThrow(ProjectInvalidError);
     expect(() => migrateProject(42)).toThrow(ProjectInvalidError);
+  });
+
+  it("throws ProjectInvalidError for a document with an extra unknown top-level field", () => {
+    const project = createProject("Heist");
+    const withExtra = { ...project, totallyMadeUpField: "surprise" };
+    expect(() => migrateProject(withExtra)).toThrow(ProjectInvalidError);
+  });
+
+  it("throws ProjectInvalidError for a doll object carrying a field that belongs to a different kind (shape)", () => {
+    const project = createProject("Heist");
+    const scene = createScene("Warehouse");
+    const doll = createDoll();
+    scene.set.objects.push({ ...doll, shape: "box" } as unknown as typeof doll);
+    project.scenes.push(scene);
+
+    expect(() => migrateProject(project)).toThrow(ProjectInvalidError);
+  });
+
+  it("throws ProjectInvalidError for a nested object carrying an extra unknown field", () => {
+    const project = createProject("Heist");
+    const scene = createScene("Warehouse");
+    const shot = createShot("Shot 01");
+    scene.shots.push({ ...shot, extraShotField: true } as unknown as typeof shot);
+    project.scenes.push(scene);
+
+    expect(() => migrateProject(project)).toThrow(ProjectInvalidError);
   });
 });
