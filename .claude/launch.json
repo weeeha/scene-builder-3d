@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "spike-http",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--dir", "spikes/vr-camera-feel", "dev:http"],
+      "port": 5173
+    }
+  ]
+}
