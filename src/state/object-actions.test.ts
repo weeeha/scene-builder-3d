@@ -3,7 +3,14 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { createDoll, createPrimitive, createProject, createScene, createShot } from "@/domain/factories";
 import type { Project } from "@/domain/types";
 import { setAutosaver, useDocumentStore } from "@/state/document-store";
-import { addObject, deleteObject, type EditTarget, renameObject, updateObject } from "@/state/object-actions";
+import {
+  addObject,
+  deleteObject,
+  type EditTarget,
+  reconcileOnlyInShot,
+  renameObject,
+  updateObject,
+} from "@/state/object-actions";
 
 let project: Project;
 let sceneId: string;
@@ -128,5 +135,40 @@ describe("deleteObject", () => {
     expect(sceneRestored.shots[1].overrides[obj.id]).toEqual({
       transform: { position: [1, 0, 0], rotationY: 0, scale: 1 },
     });
+  });
+});
+
+describe("reconcileOnlyInShot", () => {
+  it("leaves an ordinary object untouched", () => {
+    const scene = project.scenes[0];
+    const obj = createPrimitive("box"); // visible: true by default, no overrides anywhere
+    scene.set.objects.push(obj);
+    const shot = createShot("Shot 01");
+    scene.shots.push(shot);
+
+    reconcileOnlyInShot(project, sceneId, obj.id);
+
+    expect(scene.set.objects[0].visible).toBe(true);
+    expect(shot.overrides).toEqual({});
+  });
+
+  it("leaves an object untouched when it is not only in one shot", () => {
+    const scene = project.scenes[0];
+    const obj = createPrimitive("box");
+    obj.visible = false;
+    scene.set.objects.push(obj);
+    // visible true in two shots, not one, so this is not the "only in
+    // this shot" pattern reconcileOnlyInShot reacts to.
+    const shot1 = createShot("Shot 01");
+    shot1.overrides[obj.id] = { visible: true };
+    const shot2 = createShot("Shot 02");
+    shot2.overrides[obj.id] = { visible: true };
+    scene.shots.push(shot1, shot2);
+
+    reconcileOnlyInShot(project, sceneId, obj.id);
+
+    expect(scene.set.objects[0].visible).toBe(false);
+    expect(shot1.overrides[obj.id]).toEqual({ visible: true });
+    expect(shot2.overrides[obj.id]).toEqual({ visible: true });
   });
 });
