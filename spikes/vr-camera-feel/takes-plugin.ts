@@ -3,7 +3,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Plugin } from "vite";
-import { parseTake } from "./src/camera/take";
+import { parseTake } from "./src/camera/take.ts";
 
 export type TakeSummary = { id: string; number: number; lensMm: number; durationSec: number; createdAt: number };
 

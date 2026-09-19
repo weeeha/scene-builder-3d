@@ -1,5 +1,5 @@
-import type { CameraPose } from "./pose";
-import { lerpVec3, slerpQuat } from "./pose";
+import type { CameraPose } from "./pose.ts";
+import { lerpVec3, slerpQuat } from "./pose.ts";
 
 export const TAKE_STRIDE = 8; // t, px, py, pz, qx, qy, qz, qw
 

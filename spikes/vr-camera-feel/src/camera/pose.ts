@@ -1,5 +1,5 @@
 import { Quaternion, Vector3 } from "three";
-import type { Vec3 } from "../stage/types";
+import type { Vec3 } from "../stage/types.ts";
 
 export type Quat = [number, number, number, number]; // x, y, z, w
 export type CameraPose = { position: Vec3; rotation: Quat };
