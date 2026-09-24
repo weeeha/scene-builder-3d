@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router";
 
 import { Button } from "@weeeha/ui/components/button";
@@ -16,37 +15,11 @@ import { Plus, Clapperboard } from "lucide-react";
 
 import { useDocumentStore } from "@/state/document-store";
 import { addScene } from "@/state/shot-actions";
-import { getBlob } from "@/storage/blob-store";
+import { useBlobObjectUrl } from "@/app/hooks/useBlobObjectUrl";
 import type { Shot } from "@/domain/types";
 
 function BoardShotThumbnail({ blobKey }: { blobKey: string | undefined }) {
-  const [prevBlobKey, setPrevBlobKey] = useState(blobKey);
-  const [url, setUrl] = useState<string | null>(null);
-
-  // Resets the displayed thumbnail during render when blobKey changes,
-  // the same pattern ProjectLayout uses to avoid react-hooks/set-state-in-effect:
-  // state React can already derive from its own props is adjusted during
-  // render, not inside the effect below, which only ever sets state from
-  // its own async fetch callback.
-  if (blobKey !== prevBlobKey) {
-    setPrevBlobKey(blobKey);
-    setUrl(null);
-  }
-
-  useEffect(() => {
-    if (!blobKey) return;
-    let objectUrl: string | null = null;
-    let cancelled = false;
-    getBlob(blobKey).then((blob) => {
-      if (cancelled || !blob) return;
-      objectUrl = URL.createObjectURL(blob);
-      setUrl(objectUrl);
-    });
-    return () => {
-      cancelled = true;
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
-    };
-  }, [blobKey]);
+  const url = useBlobObjectUrl(blobKey);
 
   if (!url) {
     return <Skeleton className="h-12 w-20 shrink-0 rounded-md" />;
