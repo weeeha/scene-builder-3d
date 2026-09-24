@@ -1,6 +1,7 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { Canvas, type RootState } from "@react-three/fiber";
 import { Environment, Lightformer } from "@react-three/drei";
+import type { Group } from "three";
 
 import { findScene, findShot } from "@/domain/lookup";
 import { resolveSceneAll } from "@/domain/resolve";
@@ -9,12 +10,15 @@ import { useDocumentStore } from "@/state/document-store";
 import { useEditorStore, type CameraMode } from "@/state/editor-store";
 import { usePlaybackStore } from "@/state/playback-store";
 import { Ground } from "@/viewport/Ground";
+import { Gizmo } from "@/viewport/Gizmo";
 import { SceneContents } from "@/viewport/SceneContents";
 import { OrbitRig } from "@/viewport/rigs/OrbitRig";
 import { PlanRig } from "@/viewport/rigs/PlanRig";
 import { ShotCameraRig } from "@/viewport/rigs/ShotCameraRig";
 
 type StageCanvasProps = { sceneId: string; shotId: string | null };
+
+const CLICK_SLOP = 4;
 
 /** Ambient + directional key light, plus a drei Environment built entirely
  * from Lightformer children so props and metal materials get a believable
@@ -44,15 +48,12 @@ function pickRig(shotId: string | null, cameraMode: CameraMode, shot: Shot | nul
   return <OrbitRig />;
 }
 
-/** The one live canvas, mounted once by the stage layout. Reads the open
- * project, resolves the scene at the current shot and time through
- * resolveSceneAll (every set object stays mounted, hidden ones included),
- * and renders it. A WebGL context loss remounts the canvas once (a key
- * bump); an unknown scene id renders an empty stage rather than
- * throwing. */
+/** The one live canvas, mounted once by the stage layout. */
 export function StageCanvas({ sceneId, shotId }: StageCanvasProps) {
   const project = useDocumentStore((s) => s.project);
   const cameraMode = useEditorStore((s) => s.cameraMode);
+  const selectedObjectId = useEditorStore((s) => s.selectedObjectId);
+  const select = useEditorStore((s) => s.select);
   const t = usePlaybackStore((s) => s.time);
   const [canvasKey, setCanvasKey] = useState(0);
 
@@ -60,6 +61,32 @@ export function StageCanvas({ sceneId, shotId }: StageCanvasProps) {
   const shot: Shot | null = project && shotId ? (findShot(project, shotId)?.shot ?? null) : null;
 
   const objects = useMemo(() => (scene ? resolveSceneAll(scene, shot, t) : []), [scene, shot, t]);
+  const selectedObject = selectedObjectId ? (objects.find((o) => o.id === selectedObjectId) ?? null) : null;
+
+  const nodesRef = useRef(new Map<string, Group>());
+  const registerNode = useCallback((id: string, node: Group | null) => {
+    if (node) nodesRef.current.set(id, node);
+    else nodesRef.current.delete(id);
+  }, []);
+  // Read during render on purpose: nodesRef is populated by mount-time ref
+  // callbacks on SceneContents's children, not by React state, so this
+  // look-up decides whether Gizmo attaches in this same render pass. It
+  // never reads a ref value this component's own render just wrote.
+  // eslint-disable-next-line react-hooks/refs -- see comment above
+  const selectedNode = selectedObjectId ? (nodesRef.current.get(selectedObjectId) ?? null) : null;
+
+  const pointerDownAt = useRef<{ x: number; y: number } | null>(null);
+  const handlePointerDown = useCallback((event: { clientX: number; clientY: number }) => {
+    pointerDownAt.current = { x: event.clientX, y: event.clientY };
+  }, []);
+  const handlePointerMissed = useCallback(
+    (event: MouseEvent) => {
+      const down = pointerDownAt.current;
+      if (down && Math.hypot(event.clientX - down.x, event.clientY - down.y) > CLICK_SLOP) return;
+      select(null);
+    },
+    [select]
+  );
 
   const handleCreated = useCallback((state: RootState) => {
     state.gl.domElement.addEventListener(
@@ -72,11 +99,21 @@ export function StageCanvas({ sceneId, shotId }: StageCanvasProps) {
     );
   }, []);
 
+  const page: "scene" | "shot" = shotId === null ? "scene" : "shot";
+
   return (
-    <Canvas key={canvasKey} onCreated={handleCreated}>
+    <Canvas
+      key={canvasKey}
+      onCreated={handleCreated}
+      onPointerDown={handlePointerDown}
+      onPointerMissed={handlePointerMissed}
+    >
       <Lighting />
       <Ground />
-      <SceneContents objects={objects} />
+      <SceneContents objects={objects} selectedId={selectedObjectId} onSelect={select} registerNode={registerNode} />
+      {scene && selectedNode && selectedObjectId && selectedObject?.visible && (
+        <Gizmo target={selectedNode} objectId={selectedObjectId} sceneId={scene.id} page={page} shotId={shotId} />
+      )}
       {pickRig(shotId, cameraMode, shot, t)}
     </Canvas>
   );
