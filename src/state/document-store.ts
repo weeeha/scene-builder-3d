@@ -110,8 +110,8 @@ export const useDocumentStore = create<DocumentState>()((set, get) => ({
   },
 
   undo() {
-    const { project } = get();
-    if (!project || undoStack.length === 0) return;
+    const { project, readOnly } = get();
+    if (readOnly || !project || undoStack.length === 0) return;
     const entry = undoStack.pop()!;
     const next = applyPatches(project, entry.inversePatches);
     redoStack.push(entry);
@@ -120,8 +120,8 @@ export const useDocumentStore = create<DocumentState>()((set, get) => ({
   },
 
   redo() {
-    const { project } = get();
-    if (!project || redoStack.length === 0) return;
+    const { project, readOnly } = get();
+    if (readOnly || !project || redoStack.length === 0) return;
     const entry = redoStack.pop()!;
     const next = applyPatches(project, entry.patches);
     undoStack.push(entry);

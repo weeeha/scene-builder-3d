@@ -127,6 +127,31 @@ describe("useDocumentStore", () => {
     expect(useDocumentStore.getState().canUndo).toBe(false);
   });
 
+  it("readOnly makes undo and redo no-ops, leaving the document and stacks unchanged", () => {
+    // load() always clears the undo/redo stacks, so there is no path
+    // through the public API that lands on readOnly with existing
+    // history. setState flips the flag directly, the same way a second
+    // tab's lock result would if it changed mid-session, without
+    // disturbing the stacks load() would otherwise reset.
+    useDocumentStore.getState().load(createProject("Test"));
+    useDocumentStore.getState().apply((draft) => {
+      draft.name = "Renamed";
+    });
+    const afterApply = useDocumentStore.getState().project!;
+    expect(useDocumentStore.getState().canUndo).toBe(true);
+
+    useDocumentStore.setState({ readOnly: true });
+
+    useDocumentStore.getState().undo();
+    expect(useDocumentStore.getState().project).toEqual(afterApply);
+    expect(useDocumentStore.getState().canUndo).toBe(true);
+    expect(useDocumentStore.getState().canRedo).toBe(false);
+
+    useDocumentStore.getState().redo();
+    expect(useDocumentStore.getState().project).toEqual(afterApply);
+    expect(useDocumentStore.getState().canRedo).toBe(false);
+  });
+
   it("apply calls the autosaver's schedule", () => {
     const schedule = vi.fn();
     setAutosaver({ schedule });
