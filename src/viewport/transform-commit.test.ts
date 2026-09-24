@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { editTargetFor, snapPosition } from "@/viewport/transform-commit";
+import { editTargetFor, framingFromControls, snapPosition } from "@/viewport/transform-commit";
 
 describe("editTargetFor", () => {
   it("is always the set on the scene page, regardless of the write-target switch", () => {
@@ -32,5 +32,13 @@ describe("snapPosition", () => {
 
   it("returns the position unchanged for a non-positive step", () => {
     expect(snapPosition([0.4, 0.9, -0.3], 0, true)).toEqual([0.4, 0.9, -0.3]);
+  });
+});
+
+describe("framingFromControls", () => {
+  it("rounds both the camera position and the controls target to 3 decimals", () => {
+    const framing = framingFromControls([1.23456, 2.00001, -0.5006], [0.1234, 0, 0.9995]);
+    expect(framing.position).toEqual([1.235, 2, -0.501]);
+    expect(framing.aim).toEqual([0.123, 0, 1]);
   });
 });
