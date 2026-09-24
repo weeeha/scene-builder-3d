@@ -10,7 +10,7 @@ import { useDocumentStore } from "@/state/document-store";
 import { useEditorStore, type CameraMode } from "@/state/editor-store";
 import { usePlaybackStore } from "@/state/playback-store";
 import { Ground } from "@/viewport/Ground";
-import { Gizmo } from "@/viewport/Gizmo";
+import { SelectionGizmo } from "@/viewport/SelectionGizmo";
 import { SceneContents } from "@/viewport/SceneContents";
 import { ThumbnailWorker } from "@/viewport/ThumbnailWorker";
 import { OrbitRig } from "@/viewport/rigs/OrbitRig";
@@ -121,8 +121,15 @@ export function StageCanvas({ sceneId, shotId }: StageCanvasProps) {
       <Ground />
       <SceneContents objects={objects} selectedId={selectedObjectId} onSelect={select} registerNode={registerNode} />
       {scene && <ThumbnailWorker scene={scene} sceneId={scene.id} />}
-      {scene && selectedNode && selectedObjectId && selectedObject?.visible && (
-        <Gizmo target={selectedNode} objectId={selectedObjectId} sceneId={scene.id} page={page} shotId={shotId} />
+      {scene && (
+        <SelectionGizmo
+          target={selectedNode}
+          objectId={selectedObjectId}
+          sceneId={scene.id}
+          page={page}
+          shotId={shotId}
+          visible={selectedObject?.visible ?? false}
+        />
       )}
       {pickRig(scene?.id ?? sceneId, shotId, cameraMode, shot, t)}
     </Canvas>

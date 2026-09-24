@@ -1,7 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import ReactThreeTestRenderer from "@react-three/test-renderer";
 
 import type { ShotCamera } from "@/domain/types";
+import { useDocumentStore } from "@/state/document-store";
 import { ShotCameraRig } from "@/viewport/rigs/ShotCameraRig";
 
 /** Narrow, structural check for the live OrbitControls instance: it is not
@@ -14,6 +15,10 @@ function isOrbitControlsNode(node: { instance: unknown }): boolean {
   const instance = node.instance as { target?: { isVector3?: boolean } } | null;
   return instance?.target?.isVector3 === true;
 }
+
+afterEach(() => {
+  useDocumentStore.setState({ readOnly: false });
+});
 
 describe("ShotCameraRig", () => {
   it("gives the live OrbitControls a target matching the shot's aim, not the origin", async () => {
@@ -47,6 +52,21 @@ describe("ShotCameraRig", () => {
 
     const renderer = await ReactThreeTestRenderer.create(
       <ShotCameraRig camera={camera} t={0} sceneId="scene-1" shotId="shot-1" interactive={false} />
+    );
+
+    expect(renderer.scene.findAll(isOrbitControlsNode)).toHaveLength(0);
+  });
+
+  it("does not mount OrbitControls when interactive but the document is read-only", async () => {
+    useDocumentStore.setState({ readOnly: true });
+    const camera: ShotCamera = {
+      lensMm: 35,
+      position: [{ t: 0, value: [0, 1.6, 6] }],
+      aim: [{ t: 0, value: [1, 1.2, -2] }],
+    };
+
+    const renderer = await ReactThreeTestRenderer.create(
+      <ShotCameraRig camera={camera} t={0} sceneId="scene-1" shotId="shot-1" interactive />
     );
 
     expect(renderer.scene.findAll(isOrbitControlsNode)).toHaveLength(0);

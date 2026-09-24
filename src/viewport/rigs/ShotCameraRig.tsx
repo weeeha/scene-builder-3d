@@ -46,11 +46,17 @@ type ShotCameraRigProps = {
  * controls instance is read off the event itself when three.js's
  * EventDispatcher supplies one (it always does, via dispatchEvent's own
  * event.target = this), falling back to the ref only if it does not.
+ *
+ * A read-only document (a second tab on the same project) never mounts
+ * OrbitControls, regardless of the interactive prop: a drag that could
+ * never be saved would otherwise still swing the camera around in view.
  */
 export function ShotCameraRig({ camera, t, sceneId, shotId, interactive }: ShotCameraRigProps) {
   const cameraRef = useRef<ThreePerspectiveCamera>(null);
   const controlsRef = useRef<OrbitControlsImpl>(null);
   const [threeCamera, setThreeCamera] = useState<ThreePerspectiveCamera | null>(null);
+  const readOnly = useDocumentStore((s) => s.readOnly);
+  const controlsInteractive = interactive && !readOnly;
   const { position, aim } = cameraAt(camera, t);
   const [px, py, pz] = position;
   const [ax, ay, az] = aim;
@@ -93,7 +99,7 @@ export function ShotCameraRig({ camera, t, sceneId, shotId, interactive }: ShotC
         near={0.1}
         far={200}
       />
-      {interactive && threeCamera && (
+      {controlsInteractive && threeCamera && (
         <OrbitControls
           ref={controlsRef}
           camera={threeCamera}
