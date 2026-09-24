@@ -20,6 +20,9 @@ export default defineConfig({
     // .claude/** holds a git worktree from another session; its own test
     // files match Vitest's default glob too, so exclude it or a bare
     // `npm test` fails on files that have nothing to do with this repo.
-    exclude: [...configDefaults.exclude, "e2e/**", ".claude/**"],
+    // spikes/** are throwaway projects with their own package.json and
+    // dependencies (the VR spike needs @react-three/xr, which the app does
+    // not install), so they run their own tests, never this one's.
+    exclude: [...configDefaults.exclude, "e2e/**", ".claude/**", "spikes/**"],
   },
 });

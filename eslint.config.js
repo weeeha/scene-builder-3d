@@ -8,8 +8,9 @@ import { defineConfig, globalIgnores } from "eslint/config";
 export default defineConfig([
   // .claude/** holds a git worktree from another session; ignore it here
   // for the same reason vite.config.ts excludes it from Vitest discovery,
-  // so `npm run lint` only reports on this repo's own code.
-  globalIgnores(["dist", "packages/ui/**", ".claude/**"]),
+  // so `npm run lint` only reports on this repo's own code. spikes/** are
+  // throwaway projects with their own toolchain, excluded the same way.
+  globalIgnores(["dist", "packages/ui/**", ".claude/**", "spikes/**"]),
   {
     files: ["**/*.{ts,tsx}"],
     extends: [
