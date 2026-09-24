@@ -1,0 +1,4 @@
+# The emulator packages (@iwer/devui, @iwer/sem) ask for three ^0.165. Two copies of three in one page break the
+# emulator's renderer ("material.onBuild is not a function"), so everything is pinned to the app's version.
+overrides:
+  three: 0.186.0
