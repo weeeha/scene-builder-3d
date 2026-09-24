@@ -24,15 +24,22 @@ export function renderShotPixels(
 
   const target = new THREE.WebGLRenderTarget(THUMB_WIDTH, THUMB_HEIGHT);
   const previousTarget = gl.getRenderTarget();
-  gl.setRenderTarget(target);
-  gl.render(scene3d, camera);
-  gl.setRenderTarget(previousTarget);
+  // gl.render can throw (a shader compile failure, a lost context); the
+  // renderer must never stay pointed at this offscreen target after that,
+  // or the live view breaks on the next frame, and the target itself must
+  // never leak. Both run in finally, so they happen whether render
+  // succeeds or throws.
+  try {
+    gl.setRenderTarget(target);
+    gl.render(scene3d, camera);
 
-  const pixels = new Uint8Array(THUMB_WIDTH * THUMB_HEIGHT * 4);
-  gl.readRenderTargetPixels(target, 0, 0, THUMB_WIDTH, THUMB_HEIGHT, pixels);
-  target.dispose();
-
-  return { pixels, width: THUMB_WIDTH, height: THUMB_HEIGHT };
+    const pixels = new Uint8Array(THUMB_WIDTH * THUMB_HEIGHT * 4);
+    gl.readRenderTargetPixels(target, 0, 0, THUMB_WIDTH, THUMB_HEIGHT, pixels);
+    return { pixels, width: THUMB_WIDTH, height: THUMB_HEIGHT };
+  } finally {
+    gl.setRenderTarget(previousTarget);
+    target.dispose();
+  }
 }
 
 export function pixelsToPngBlob(

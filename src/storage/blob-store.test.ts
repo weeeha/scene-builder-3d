@@ -2,7 +2,8 @@
 import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it } from "vitest";
 import { deleteBlob, deleteProjectBlobs, getBlob, putBlob } from "@/storage/blob-store";
-import { resetDbForTests } from "@/storage/db";
+import { openDb, resetDbForTests } from "@/storage/db";
+import type { BlobRecord } from "@/storage/db";
 
 beforeEach(async () => {
   await resetDbForTests();
@@ -26,6 +27,34 @@ describe("putBlob and getBlob", () => {
 
   it("returns null for a missing key", async () => {
     expect(await getBlob("does-not-exist")).toBeNull();
+  });
+
+  it("stores the blob's bytes as an ArrayBuffer, not a Blob value (WebKit's ephemeral IndexedDB rejects a stored Blob)", async () => {
+    await putBlob({ key: "thumb:1", projectId: "proj_1", kind: "thumb", blob: makeBlob("hi", "image/png") });
+
+    const db = await openDb();
+    const record = await db.get("blobs", "thumb:1");
+    expect(record?.bytes).toBeInstanceOf(ArrayBuffer);
+    expect(record).not.toHaveProperty("blob");
+  });
+
+  it("treats a pre-migration record (bytes as a size number alongside a blob field) as missing rather than throwing", async () => {
+    const db = await openDb();
+    // Simulates a record written by the old shape, before bytes held an
+    // ArrayBuffer: bypasses putBlob to insert it directly, since putBlob
+    // itself can no longer produce this shape.
+    await db.put(
+      "blobs",
+      {
+        key: "old:1",
+        projectId: "proj_1",
+        kind: "thumb",
+        bytes: 5,
+        blob: makeBlob("hello", "image/png"),
+      } as unknown as BlobRecord
+    );
+
+    expect(await getBlob("old:1")).toBeNull();
   });
 });
 

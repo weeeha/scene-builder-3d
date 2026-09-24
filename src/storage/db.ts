@@ -2,7 +2,14 @@ import { deleteDB, openDB, type DBSchema, type IDBPDatabase } from "idb";
 import type { Project } from "@/domain/types";
 
 export type BlobKind = "glb" | "thumb" | "clip";
-export type BlobRecord = { key: string; projectId: string; kind: BlobKind; bytes: number; blob: Blob };
+// bytes holds the raw payload as an ArrayBuffer, not a Blob: WebKit's
+// ephemeral IndexedDB (private windows, and Playwright's default webkit
+// context) rejects a Blob value in a put with "UnknownError: Error
+// preparing Blob/File data to be stored in object store", while a
+// persistent WebKit profile accepts either. An ArrayBuffer round trips in
+// every environment, so blob-store.ts stores one plus the MIME type and
+// rebuilds a Blob on read.
+export type BlobRecord = { key: string; projectId: string; kind: BlobKind; type: string; bytes: ArrayBuffer };
 
 export interface Sb3dSchema extends DBSchema {
   projects: { key: string; value: Project };
