@@ -1,5 +1,6 @@
 import { useRef } from "react";
 import type { ChangeEvent } from "react";
+import { useNavigate } from "react-router";
 import { toast } from "sonner";
 
 import { Button } from "@weeeha/ui/components/button";
@@ -11,6 +12,7 @@ import { exportProjectJson, exportFileName, importProjectJson } from "@/storage/
 import { saveProject } from "@/storage/project-repo";
 
 export function ExportImportButtons() {
+  const navigate = useNavigate();
   const project = useDocumentStore((s) => s.project);
   const readOnly = useDocumentStore((s) => s.readOnly);
   const applyTransient = useDocumentStore((s) => s.applyTransient);
@@ -38,6 +40,7 @@ export function ExportImportButtons() {
       const imported = await importProjectJson(file);
       await saveProject(imported);
       toast.success(`Imported as a new project: ${imported.name}`);
+      navigate(`/p/${imported.id}`);
     } catch {
       toast.error("That file could not be imported.");
     }
