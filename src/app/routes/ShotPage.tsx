@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useParams } from "react-router";
 
 import { ScrollArea } from "@weeeha/ui/components/scroll-area";
@@ -17,6 +18,14 @@ export function ShotPage() {
   const cameraMode = useEditorStore((s) => s.cameraMode);
   const setCameraMode = useEditorStore((s) => s.setCameraMode);
   const writeTarget = useEditorStore((s) => s.writeTarget);
+
+  // Entering a shot, including moving from one shot to another through the
+  // strip (this route does not remount, only shotId changes), looks
+  // through that shot's camera by default. The toggle below still lets the
+  // user switch to orbit within this shot.
+  useEffect(() => {
+    if (shotId) setCameraMode("shot");
+  }, [shotId, setCameraMode]);
 
   if (!project || !shotId) return null;
   const found = findShot(project, shotId);
