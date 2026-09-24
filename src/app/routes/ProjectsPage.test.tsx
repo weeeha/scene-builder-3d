@@ -98,6 +98,25 @@ describe("ProjectsPage", () => {
     expect(screen.queryByText("project page")).not.toBeInTheDocument();
   });
 
+  it("shows an error state with retry when loading projects fails, and recovers", async () => {
+    const user = userEvent.setup();
+    const { createProject } = await import("@/domain/factories");
+    const repo = await import("@/storage/project-repo");
+    const project = createProject("Job Smith");
+    await repo.saveProject(project);
+    const listSpy = vi.spyOn(repo, "listProjects").mockRejectedValueOnce(new Error("boom"));
+
+    renderProjectsPage();
+
+    expect(await screen.findByText("Could not load your projects")).toBeInTheDocument();
+    listSpy.mockRestore();
+
+    await user.click(screen.getByRole("button", { name: "Try again" }));
+
+    expect(await screen.findByText("Job Smith")).toBeInTheDocument();
+    expect(screen.queryByText("Could not load your projects")).not.toBeInTheDocument();
+  });
+
   it("shows a toast and keeps the project listed when deleting it fails", async () => {
     const user = userEvent.setup();
     const { createProject } = await import("@/domain/factories");

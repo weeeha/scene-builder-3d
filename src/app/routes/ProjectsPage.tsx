@@ -39,10 +39,11 @@ import {
   EmptyMedia,
   EmptyTitle,
   EmptyDescription,
+  EmptyContent,
 } from "@weeeha/ui/components/empty";
 import { Skeleton } from "@weeeha/ui/components/skeleton";
 import { toast } from "sonner";
-import { FolderOpen, Plus, Trash2, Upload } from "lucide-react";
+import { FolderOpen, Plus, Trash2, TriangleAlert, Upload } from "lucide-react";
 
 import { listProjects, saveProject, deleteProject } from "@/storage/project-repo";
 import type { ProjectSummary } from "@/storage/project-repo";
@@ -60,12 +61,20 @@ function formatUpdatedAt(iso: string): string {
 export function ProjectsPage() {
   const navigate = useNavigate();
   const [summaries, setSummaries] = useState<ProjectSummary[] | null>(null);
+  const [loadError, setLoadError] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [name, setName] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const refresh = useCallback(() => {
-    listProjects().then(setSummaries);
+    listProjects()
+      .then((list) => {
+        setSummaries(list);
+        setLoadError(false);
+      })
+      .catch(() => {
+        setLoadError(true);
+      });
   }, []);
 
   useEffect(() => {
@@ -169,7 +178,20 @@ export function ProjectsPage() {
         </div>
       </div>
 
-      {summaries === null ? (
+      {loadError ? (
+        <Empty>
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <TriangleAlert />
+            </EmptyMedia>
+            <EmptyTitle>Could not load your projects</EmptyTitle>
+            <EmptyDescription>Something went wrong loading them. Try again.</EmptyDescription>
+          </EmptyHeader>
+          <EmptyContent>
+            <Button onClick={refresh}>Try again</Button>
+          </EmptyContent>
+        </Empty>
+      ) : summaries === null ? (
         <div className="flex flex-col gap-3">
           <Skeleton className="h-20 w-full" />
           <Skeleton className="h-20 w-full" />
