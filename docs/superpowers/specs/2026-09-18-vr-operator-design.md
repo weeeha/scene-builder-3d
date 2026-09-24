@@ -172,6 +172,8 @@ Nick: the five questions with the headset on, from a one-page checklist in the s
 
 Done means the five questions and the probe are answered in section 4.10 and the spike branch is left unmerged.
 
+Update 2026-09-19: PR #2 merged the spike branch after all. The code lives in `spikes/vr-camera-feel/` on `main`, with its own package.json, and the app's build, tests and lint skip that folder.
+
 No-go: the browser can't hold refresh rate even at 640×274, or a 50 mm handheld frame is unusable at every smoothing level. In that case the platform decision reopens (Unity, section 2) before any V spec is written. The JSON contract in section 5.1 carries over to either platform.
 
 ### 4.10 Findings
@@ -186,6 +188,19 @@ Filled in after the headset run. Until then every row reads `pending`.
 | 4 | Takes as poses | pending | |
 | 5 | Dev loop | pending | |
 | P | Speech and mic probe | pending | |
+
+### 4.11 Library findings from the desktop run
+
+Found while building the spike on 2026-09-18 and 19, before the headset run. None of them are in the libraries' docs. V1 and every later V piece start from these fixes instead of finding them again. Paths are relative to `spikes/vr-camera-feel/`.
+
+| # | Behaviour | Fix used in the spike | Where |
+| --- | --- | --- | --- |
+| L1 | Without an `<XROrigin>`, `useXR(s => s.origin)` returns the scene itself. Hiding the origin during the viewfinder's lens pass hid everything, and the monitor went black. | Hide the origin only when it is not the scene. | `src/xr/Viewfinder.tsx` |
+| L2 | IWER 2.4, the emulator behind `createXRStore({ emulate })`, does not install while a native `navigator.xr` exists, and desktop Chrome always has one. @pmndrs/xr 6.6.30 does not force the install, so no XR behaviour can be checked on the desktop. | On localhost only, ask `isSessionSupported("immersive-vr")` with a 1.5 s timeout. Only on a clear `false`, shadow `navigator.xr` with `undefined` before creating the store. A rejection or a timeout keeps the native runtime, so a Quest over `adb reverse` never gets the emulator. | `src/xr/xr-store.ts` |
+| L3 | `@iwer/devui` and `@iwer/sem` depend on three ^0.165. The second copy of three made every emulated frame throw "material.onBuild is not a function" and blacked out the session. | Override three to one version for every package in `pnpm-workspace.yaml` (pnpm 11 ignores `pnpm.overrides` in package.json). The emulator's synthetic environment is off. | `pnpm-workspace.yaml`, `src/xr/xr-store.ts` |
+| L4 | `createXRStore` offers a session by default and prefers `immersive-ar` on a headset with passthrough, such as a Quest 3. Input gated on `mode === "immersive-vr"` then does nothing. | `offerSession: false`, plus the page's own Enter VR button. | `src/xr/xr-store.ts` |
+| L5 | @react-three/fiber 9.7 declares `react >=19 <19.3`, so a plain `npm ci` fails once React 19.3 resolves. | Pin react and react-dom to 19.2.x. The app does the same since PR #3. | `package.json` |
+| L6 | Vite 8 loads `vite.config.ts` as native ESM, so every import reachable from it needs an explicit `.ts` extension. The app is on Vite 7 and not affected yet. | Explicit extensions on the config's import graph. | `vite.config.ts` |
 
 ## 5. Architecture of the real thing
 
