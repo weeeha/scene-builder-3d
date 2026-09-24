@@ -25,6 +25,15 @@ describe("ExportImportButtons", () => {
     expect(useDocumentStore.getState().project?.lastExportedAt).toBeDefined();
   });
 
+  it("disables the hidden import file input when the document is read-only", () => {
+    const project = createProject("Job Smith");
+    useDocumentStore.getState().load(project, { readOnly: true });
+
+    render(<ExportImportButtons />);
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    expect(input).toBeDisabled();
+  });
+
   it("imports a project from a file as a new project", async () => {
     const user = userEvent.setup();
     const project = createProject("Job Smith");

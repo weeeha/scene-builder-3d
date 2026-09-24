@@ -80,6 +80,7 @@ export function ExportImportButtons() {
         type="file"
         accept="application/json,.json"
         className="hidden"
+        disabled={readOnly}
         onChange={handleImportChange}
       />
     </TooltipProvider>

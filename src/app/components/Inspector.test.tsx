@@ -176,6 +176,50 @@ describe("Inspector", () => {
     expect(screen.getByRole("switch")).toBeChecked();
   });
 
+  it("disables the reset affordance when the document is read-only", () => {
+    const project = createProject("Job Smith");
+    let sceneId = "";
+    let shotId = "";
+    let objectId = "";
+    useDocumentStore.getState().load(project, {});
+    useDocumentStore.getState().apply((draft) => {
+      sceneId = addScene(draft, "Kitchen");
+      shotId = addShot(draft, sceneId);
+      const box = createPrimitive("box");
+      objectId = box.id;
+      addObject(draft, sceneId, box);
+    });
+    useDocumentStore.getState().apply((draft) => {
+      updateObject(
+        draft,
+        sceneId,
+        objectId,
+        { transform: { position: [1, 0, 0], rotationY: 0, scale: 1 } },
+        { kind: "shot", shotId }
+      );
+    });
+    useEditorStore.setState({ selectedObjectId: objectId, writeTarget: "shot" });
+    useDocumentStore.setState({ readOnly: true });
+
+    render(<Inspector page="shot" sceneId={sceneId} shotId={shotId} />);
+    expect(screen.getByRole("button", { name: "Reset position" })).toBeDisabled();
+  });
+
+  it("disables the shot-type choice chips when the document is read-only", () => {
+    const project = createProject("Job Smith");
+    let sceneId = "";
+    let shotId = "";
+    useDocumentStore.getState().load(project, {});
+    useDocumentStore.getState().apply((draft) => {
+      sceneId = addScene(draft, "Kitchen");
+      shotId = addShot(draft, sceneId);
+    });
+    useDocumentStore.setState({ readOnly: true });
+
+    render(<Inspector page="shot" sceneId={sceneId} shotId={shotId} />);
+    expect(screen.getByRole("radio", { name: "WIDE" })).toBeDisabled();
+  });
+
   it("resets a field's override on the shot regardless of the write-target switch", async () => {
     const user = userEvent.setup();
     const project = createProject("Job Smith");

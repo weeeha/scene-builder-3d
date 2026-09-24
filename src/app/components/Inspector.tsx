@@ -124,6 +124,7 @@ export function Inspector({
           shot ? (
             <ResetAffordance
               state={override?.transform ? "modified" : "default"}
+              disabled={readOnly || !override?.transform}
               onReset={() => resetField({ transform: undefined })}
               label="Reset position"
             />
@@ -196,6 +197,7 @@ export function Inspector({
           shot ? (
             <ResetAffordance
               state={override?.transform ? "modified" : "default"}
+              disabled={readOnly || !override?.transform}
               onReset={() => resetField({ transform: undefined })}
               label="Reset rotation"
             />
@@ -224,6 +226,7 @@ export function Inspector({
           shot ? (
             <ResetAffordance
               state={override?.transform ? "modified" : "default"}
+              disabled={readOnly || !override?.transform}
               onReset={() => resetField({ transform: undefined })}
               label="Reset scale"
             />
@@ -250,6 +253,7 @@ export function Inspector({
           shot ? (
             <ResetAffordance
               state={override?.visible !== undefined ? "modified" : "default"}
+              disabled={readOnly || override?.visible === undefined}
               onReset={() => resetField({ visible: undefined })}
               label="Reset visibility"
             />
@@ -273,6 +277,7 @@ export function Inspector({
             shot ? (
               <ResetAffordance
                 state={override?.pose !== undefined ? "modified" : "default"}
+                disabled={readOnly || override?.pose === undefined}
                 onReset={() => resetField({ pose: undefined })}
                 label="Reset pose"
               />
@@ -340,7 +345,7 @@ function ShotFields({
             }
           >
             {SHOT_TYPES.map((type) => (
-              <ChoiceChip key={type} value={type}>
+              <ChoiceChip key={type} value={type} disabled={readOnly}>
                 {type}
               </ChoiceChip>
             ))}
