@@ -132,4 +132,91 @@ describe("ProjectLayout", () => {
     expect(screen.getByText("Changes are not being saved")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Export" })).toBeInTheDocument();
   });
+
+  it("does not let a stale autosaver failure from an unmounted project write into a newly loaded one", async () => {
+    // Only fake setTimeout/clearTimeout, for the same reason as the test
+    // above: fake-indexeddb schedules through setImmediate, and the full
+    // default fake timer set would hang every IndexedDB call this test
+    // makes (loadProject/saveProject for both projects).
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const projectA = createProject("Project A");
+    const projectB = createProject("Project B");
+    await saveProject(projectA);
+    await saveProject(projectB);
+
+    const repo = await import("@/storage/project-repo");
+    let rejectA: (error: Error) => void = () => {};
+    const pendingASave = new Promise<void>((_resolve, reject) => {
+      rejectA = reject;
+    });
+    vi.spyOn(repo, "saveProject").mockImplementation((project) => {
+      if (project.id === projectA.id) {
+        return pendingASave;
+      }
+      return Promise.resolve();
+    });
+
+    const router = createMemoryRouter(
+      [
+        {
+          path: "/p/:projectId",
+          element: <ProjectLayout />,
+          children: [{ index: true, element: <div>board content</div> }],
+        },
+      ],
+      { initialEntries: [`/p/${projectA.id}`] }
+    );
+    render(<RouterProvider router={router} />);
+
+    await vi.waitFor(() => expect(useDocumentStore.getState().project?.id).toBe(projectA.id));
+
+    // Schedule an edit on A, then navigate away before the 500ms debounce
+    // fires. Cleanup's own flush() becomes the one save attempt for A, and
+    // it is still in flight (pendingASave has not settled) at the moment B
+    // finishes loading below.
+    useDocumentStore.getState().apply((draft) => {
+      draft.name = "A edited";
+    });
+    await router.navigate(`/p/${projectB.id}`);
+
+    await vi.waitFor(() => expect(useDocumentStore.getState().project?.id).toBe(projectB.id));
+    const bStatusBeforeAFailed = useDocumentStore.getState().saveStatus;
+    const bFailuresBeforeAFailed = useDocumentStore.getState().saveFailures;
+
+    // A's pending save settles, with a failure, only now - well after B's
+    // document is the one loaded in the store.
+    rejectA(new Error("stale save"));
+    // Drain the promise chain inside the (old, cleaned-up) autosaver:
+    // runAttempt's catch, flush()'s while(inFlight) loop, then dispose()'s
+    // own best-effort re-attempt against the same rejected promise. All of
+    // it is plain microtask chaining with no timers involved, so repeated
+    // ticks are enough to let it fully settle.
+    for (let i = 0; i < 20; i++) {
+      await Promise.resolve();
+    }
+
+    expect(useDocumentStore.getState().project?.id).toBe(projectB.id);
+    expect(useDocumentStore.getState().saveStatus).toBe(bStatusBeforeAFailed);
+    expect(useDocumentStore.getState().saveFailures).toBe(bFailuresBeforeAFailed);
+    expect(screen.queryByText("Changes are not being saved")).not.toBeInTheDocument();
+  });
+
+  it("shows an error state and leaves no lock behind when loading the project throws", async () => {
+    const project = createProject("Boom Project");
+    await saveProject(project);
+
+    const repo = await import("@/storage/project-repo");
+    vi.spyOn(repo, "loadProject").mockRejectedValueOnce(new Error("indexeddb exploded"));
+
+    renderProjectLayout(project.id);
+
+    expect(await screen.findByText("Could not load this project")).toBeInTheDocument();
+
+    // No lock was left behind: a fresh acquire for the same id still
+    // reports the first-tab (non-read-only) outcome, proving nothing from
+    // the failed open() is still holding it.
+    const lock = await acquireProjectLock(project.id);
+    expect(lock.readOnly).toBe(false);
+    lock.release();
+  });
 });

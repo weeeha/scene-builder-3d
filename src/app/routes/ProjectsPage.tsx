@@ -76,14 +76,28 @@ export function ProjectsPage() {
     const trimmed = name.trim();
     if (!trimmed) return;
     const project = createProject(trimmed);
-    await saveProject(project);
+    try {
+      await saveProject(project);
+    } catch {
+      // Leave the dialog open with the typed name still in it, so the
+      // user can just retry rather than re-typing the project name.
+      toast.error("That project could not be saved. Try again.");
+      return;
+    }
     setCreateOpen(false);
     setName("");
     navigate(`/p/${project.id}`);
   };
 
   const handleDelete = async (id: string) => {
-    await deleteProject(id);
+    try {
+      await deleteProject(id);
+    } catch {
+      // Do not refresh: the project is still stored, so the list should
+      // keep showing it rather than pretending the delete went through.
+      toast.error("That project could not be deleted. Try again.");
+      return;
+    }
     refresh();
   };
 

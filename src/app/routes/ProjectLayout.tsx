@@ -16,7 +16,7 @@ import {
 } from "@weeeha/ui/components/empty";
 import { Skeleton } from "@weeeha/ui/components/skeleton";
 import { Button } from "@weeeha/ui/components/button";
-import { FolderOpen } from "lucide-react";
+import { FolderOpen, TriangleAlert } from "lucide-react";
 
 import { SaveBanner } from "@/app/components/SaveBanner";
 import { ReadOnlyNotice } from "@/app/components/ReadOnlyNotice";
@@ -24,7 +24,7 @@ import { ThemeToggle } from "@/app/components/ThemeToggle";
 
 let persistRequested = false;
 
-type LoadState = "loading" | "not-found" | "ready";
+type LoadState = "loading" | "not-found" | "error" | "ready";
 
 export function ProjectLayout() {
   const { projectId } = useParams<{ projectId: string }>();
@@ -52,36 +52,54 @@ export function ProjectLayout() {
     let autosaver: ReturnType<typeof createAutosaver> | null = null;
 
     async function open() {
-      const loaded = await loadProject(projectId!);
-      if (cancelled) return;
-      if (!loaded) {
-        setState("not-found");
-        return;
-      }
+      try {
+        const loaded = await loadProject(projectId!);
+        if (cancelled) return;
+        if (!loaded) {
+          setState("not-found");
+          return;
+        }
 
-      const lock = await acquireProjectLock(projectId!);
-      if (cancelled) {
-        lock.release();
-        return;
-      }
-      releaseRef.current = lock.release;
+        const lock = await acquireProjectLock(projectId!);
+        if (cancelled) {
+          lock.release();
+          return;
+        }
+        releaseRef.current = lock.release;
 
-      autosaver = createAutosaver({
-        save: saveProject,
-        onStatus: (status, failures) => {
-          // useDocumentStore is a zustand store: setState merges these two
-          // fields into DocumentState without touching its actions.
-          useDocumentStore.setState({ saveStatus: status, saveFailures: failures });
-        },
-      });
-      setAutosaver(autosaver);
+        autosaver = createAutosaver({
+          save: saveProject,
+          onStatus: (status, failures) => {
+            // Guards against a stale write: once this effect's cleanup has
+            // run (project changed, or the layout unmounted), a save that
+            // was in flight or retrying for the OLD project must not
+            // report its outcome here. The store may already hold a
+            // different project's document by the time this fires, since
+            // a failed save can keep retrying for seconds after the tab
+            // has moved on (see the fix-round-1 note below cleanup).
+            if (cancelled) return;
+            // useDocumentStore is a zustand store: setState merges these
+            // two fields into DocumentState without touching its actions.
+            useDocumentStore.setState({ saveStatus: status, saveFailures: failures });
+          },
+        });
+        setAutosaver(autosaver);
 
-      useDocumentStore.getState().load(loaded, { readOnly: lock.readOnly });
-      setState("ready");
+        useDocumentStore.getState().load(loaded, { readOnly: lock.readOnly });
+        setState("ready");
 
-      if (!persistRequested) {
-        persistRequested = true;
-        void navigator.storage?.persist?.();
+        if (!persistRequested) {
+          persistRequested = true;
+          void navigator.storage?.persist?.();
+        }
+      } catch {
+        if (cancelled) return;
+        // Release anything this attempt did acquire before failing (only
+        // possible if loadProject succeeded but something after it threw;
+        // when loadProject itself throws, releaseRef is still null here).
+        releaseRef.current?.();
+        releaseRef.current = null;
+        setState("error");
       }
     }
 
@@ -102,12 +120,27 @@ export function ProjectLayout() {
       cancelled = true;
       document.removeEventListener("visibilitychange", onVisibilityChange);
       window.removeEventListener("pagehide", flush);
-      autosaver?.flush();
-      autosaver?.dispose();
       setAutosaver(null);
-      releaseRef.current?.();
-      releaseRef.current = null;
+      // Close synchronously, before any of the async teardown below. React
+      // always finishes running this cleanup before the next effect run (the
+      // next project's own open()) starts, so a synchronous close() here can
+      // never execute after that project has already loaded and wipe it.
       useDocumentStore.getState().close();
+
+      const teardownAutosaver = autosaver;
+      const teardownRelease = releaseRef.current;
+      releaseRef.current = null;
+
+      void (async () => {
+        // Still attempt whatever edit was pending (Task 11 contract: no
+        // save is ever silently dropped), and release the lock only once
+        // that attempt has fully settled, successfully or not, so a second
+        // tab can never acquire the lock - and open a stale document -
+        // while this tab might still be about to write to it.
+        await teardownAutosaver?.flush();
+        teardownAutosaver?.dispose();
+        teardownRelease?.();
+      })();
     };
   }, [projectId]);
 
@@ -130,6 +163,28 @@ export function ProjectLayout() {
           <EmptyTitle>Project not found</EmptyTitle>
           <EmptyDescription>
             This project does not exist in this browser.
+          </EmptyDescription>
+        </EmptyHeader>
+        <EmptyContent>
+          <Button asChild>
+            <Link to="/">Back to projects</Link>
+          </Button>
+        </EmptyContent>
+      </Empty>
+    );
+  }
+
+  if (state === "error") {
+    return (
+      <Empty className="h-full">
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <TriangleAlert />
+          </EmptyMedia>
+          <EmptyTitle>Could not load this project</EmptyTitle>
+          <EmptyDescription>
+            Something went wrong loading it. Try again, or go back to your
+            projects.
           </EmptyDescription>
         </EmptyHeader>
         <EmptyContent>
