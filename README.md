@@ -1,6 +1,6 @@
 # scene-builder-3d
 
-> **Status:** exploration · **Stage:** S1 walking skeleton done, in review on [PR #3](https://github.com/weeeha/scene-builder-3d/pull/3) · **Preview:** [Vercel preview](https://scene-builder-3d-g1fjvyg2k-nick-vyhouskis-projects.vercel.app) (Vercel login required)
+> **Status:** exploration · **Stage:** S1 walking skeleton done, in review on [PR #3](https://github.com/weeeha/scene-builder-3d/pull/3) · **Preview:** [Vercel preview](https://scene-builder-3d-ptct3bqa3-nick-vyhouskis-projects.vercel.app) (Vercel login required)
 > Everything published from this repo starts unlisted and is labeled `exploration`.
 
 A shot-first 3D previs tool for the browser. Build a set from props, place
