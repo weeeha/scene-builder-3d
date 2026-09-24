@@ -12,6 +12,7 @@ import { usePlaybackStore } from "@/state/playback-store";
 import { Ground } from "@/viewport/Ground";
 import { Gizmo } from "@/viewport/Gizmo";
 import { SceneContents } from "@/viewport/SceneContents";
+import { ThumbnailWorker } from "@/viewport/ThumbnailWorker";
 import { OrbitRig } from "@/viewport/rigs/OrbitRig";
 import { PlanRig } from "@/viewport/rigs/PlanRig";
 import { ShotCameraRig } from "@/viewport/rigs/ShotCameraRig";
@@ -119,6 +120,7 @@ export function StageCanvas({ sceneId, shotId }: StageCanvasProps) {
       <Lighting />
       <Ground />
       <SceneContents objects={objects} selectedId={selectedObjectId} onSelect={select} registerNode={registerNode} />
+      {scene && <ThumbnailWorker scene={scene} sceneId={scene.id} />}
       {scene && selectedNode && selectedObjectId && selectedObject?.visible && (
         <Gizmo target={selectedNode} objectId={selectedObjectId} sceneId={scene.id} page={page} shotId={shotId} />
       )}

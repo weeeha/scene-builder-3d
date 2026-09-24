@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { NavLink, useMatch, useParams } from "react-router";
 
 import {
@@ -34,6 +34,7 @@ import { Plus, Copy, Trash2, ChevronLeft, ChevronRight, Clapperboard } from "luc
 import { useDocumentStore } from "@/state/document-store";
 import { findScene } from "@/domain/lookup";
 import { addShot, duplicateShot, deleteShot, moveShot } from "@/state/shot-actions";
+import { getBlob } from "@/storage/blob-store";
 import type { Shot } from "@/domain/types";
 
 export function ShotStrip({ sceneId }: { sceneId: string }) {
@@ -99,6 +100,41 @@ export function ShotStrip({ sceneId }: { sceneId: string }) {
   );
 }
 
+function ShotThumbnailImage({ blobKey }: { blobKey: string | undefined }) {
+  const [prevBlobKey, setPrevBlobKey] = useState(blobKey);
+  const [url, setUrl] = useState<string | null>(null);
+
+  // Resets the displayed thumbnail during render when blobKey changes,
+  // the same pattern ProjectLayout uses to avoid react-hooks/set-state-in-effect:
+  // state React can already derive from its own props is adjusted during
+  // render, not inside the effect below, which only ever sets state from
+  // its own async fetch callback.
+  if (blobKey !== prevBlobKey) {
+    setPrevBlobKey(blobKey);
+    setUrl(null);
+  }
+
+  useEffect(() => {
+    if (!blobKey) return;
+    let objectUrl: string | null = null;
+    let cancelled = false;
+    getBlob(blobKey).then((blob) => {
+      if (cancelled || !blob) return;
+      objectUrl = URL.createObjectURL(blob);
+      setUrl(objectUrl);
+    });
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [blobKey]);
+
+  if (!url) {
+    return <Skeleton className="h-6 w-12 rounded-sm" />;
+  }
+  return <img src={url} alt="" className="h-6 w-12 rounded-sm object-cover" />;
+}
+
 function ShotCard({
   shot,
   index,
@@ -158,7 +194,7 @@ function ShotCard({
             >
               <div className="flex items-center justify-between gap-1">
                 <span className="font-medium">{String(index + 1).padStart(2, "0")}</span>
-                <Skeleton className="h-6 w-12 rounded-sm" />
+                <ShotThumbnailImage blobKey={shot.thumb?.blobKey} />
               </div>
               <div className="flex items-center justify-between gap-1">
                 <span className="truncate">{shot.name}</span>
