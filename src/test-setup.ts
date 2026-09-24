@@ -31,3 +31,12 @@ if (typeof window !== "undefined" && !window.ResizeObserver) {
     disconnect() {}
   };
 }
+
+// Vitest's built-in Blob/URL shim throws on URL.createObjectURL for a Blob
+// built by this codebase's own export/thumbnail code (an internal "_buffer"
+// field it expects is absent). Downloads and thumbnail previews only need a
+// revocable, unique string here, not a resolvable blob: URL, since nothing
+// in jsdom ever navigates to it.
+let objectUrlCounter = 0;
+URL.createObjectURL = () => `blob:mock-${objectUrlCounter++}`;
+URL.revokeObjectURL = () => {};

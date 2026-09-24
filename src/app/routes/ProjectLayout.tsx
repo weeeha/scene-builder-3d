@@ -16,15 +16,59 @@ import {
 } from "@weeeha/ui/components/empty";
 import { Skeleton } from "@weeeha/ui/components/skeleton";
 import { Button } from "@weeeha/ui/components/button";
-import { FolderOpen, TriangleAlert } from "lucide-react";
+import {
+  Breadcrumb,
+  BreadcrumbList,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@weeeha/ui/components/breadcrumb";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@weeeha/ui/components/tooltip";
+import { FolderOpen, Keyboard, TriangleAlert } from "lucide-react";
 
 import { SaveBanner } from "@/app/components/SaveBanner";
 import { ReadOnlyNotice } from "@/app/components/ReadOnlyNotice";
+import { UndoRedoButtons } from "@/app/components/UndoRedoButtons";
+import { ExportImportButtons } from "@/app/components/ExportImportButtons";
 import { ThemeToggle } from "@/app/components/ThemeToggle";
+import { useKeyboardShortcuts } from "@/app/hooks/useKeyboardShortcuts";
+import { ShortcutsSheet } from "@/components/super-ai/shortcuts-sheet";
+import type { ShortcutSection } from "@/components/super-ai/shortcuts-sheet";
 
 let persistRequested = false;
 
 type LoadState = "loading" | "not-found" | "error" | "ready";
+
+const SHORTCUT_SECTIONS: ShortcutSection[] = [
+  {
+    title: "Editing",
+    shortcuts: [
+      { label: "Undo", keys: ["⌘", "Z"] },
+      { label: "Redo", keys: ["⇧", "⌘", "Z"] },
+      { label: "Delete selection", keys: ["Delete"] },
+    ],
+  },
+  {
+    title: "Gizmo",
+    shortcuts: [
+      { label: "Move", keys: ["W"] },
+      { label: "Rotate", keys: ["E"] },
+      { label: "Scale", keys: ["R"] },
+    ],
+  },
+  {
+    title: "Shots",
+    shortcuts: [
+      { label: "Previous shot", keys: ["["] },
+      { label: "Next shot", keys: ["]"] },
+    ],
+  },
+  {
+    title: "Help",
+    shortcuts: [{ label: "Shortcuts", keys: ["?"] }],
+  },
+];
 
 export function ProjectLayout() {
   const { projectId } = useParams<{ projectId: string }>();
@@ -36,12 +80,15 @@ export function ProjectLayout() {
   // external systems or subscribe to them, not set state React already
   // knows on mount.
   const [state, setState] = useState<LoadState>(projectId ? "loading" : "not-found");
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const releaseRef = useRef<(() => void) | null>(null);
 
   const project = useDocumentStore((s) => s.project);
   const readOnly = useDocumentStore((s) => s.readOnly);
   const saveStatus = useDocumentStore((s) => s.saveStatus);
   const saveFailures = useDocumentStore((s) => s.saveFailures);
+
+  useKeyboardShortcuts({ onOpenShortcuts: () => setShortcutsOpen(true) });
 
   useEffect(() => {
     if (!projectId) {
@@ -204,12 +251,49 @@ export function ProjectLayout() {
     <div className="flex h-dvh flex-col">
       {saveStatus === "error" ? <SaveBanner failures={saveFailures} project={project} /> : null}
       {readOnly ? <ReadOnlyNotice /> : null}
-      <header className="flex items-center justify-end gap-2 border-b border-border px-3 py-2">
-        <ThemeToggle />
+      <header className="flex items-center justify-between gap-3 border-b border-border px-3 py-2">
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link to="/">Projects</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>{project.name}</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+        <div className="flex items-center gap-2">
+          <UndoRedoButtons />
+          <ExportImportButtons />
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  aria-label="Keyboard shortcuts"
+                  onClick={() => setShortcutsOpen(true)}
+                >
+                  <Keyboard />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Keyboard shortcuts</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          <ThemeToggle />
+        </div>
       </header>
       <div className="min-h-0 flex-1">
         <Outlet />
       </div>
+      <ShortcutsSheet
+        sections={SHORTCUT_SECTIONS}
+        open={shortcutsOpen}
+        onOpenChange={setShortcutsOpen}
+      />
     </div>
   );
 }
