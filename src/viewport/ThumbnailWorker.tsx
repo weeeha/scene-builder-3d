@@ -10,6 +10,7 @@ import type { Scene } from "@/domain/types";
 export function ThumbnailWorker({ scene, sceneId }: { scene: Scene; sceneId: string }) {
   const { gl, scene: scene3d } = useThree();
   const project = useDocumentStore((s) => s.project);
+  const readOnly = useDocumentStore((s) => s.readOnly);
   const applyTransient = useDocumentStore((s) => s.applyTransient);
   const rendering = useRef(false);
 
@@ -38,6 +39,7 @@ export function ThumbnailWorker({ scene, sceneId }: { scene: Scene; sceneId: str
             hash: hashes[shotId],
             projectId: project.id,
             sceneId,
+            readOnly,
             applyTransient,
           });
         }
@@ -47,7 +49,7 @@ export function ThumbnailWorker({ scene, sceneId }: { scene: Scene; sceneId: str
     }, 800);
 
     return () => window.clearTimeout(timer);
-  }, [project, scene, sceneId, gl, scene3d, applyTransient]);
+  }, [project, scene, sceneId, gl, scene3d, readOnly, applyTransient]);
 
   return null;
 }

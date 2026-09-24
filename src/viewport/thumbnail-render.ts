@@ -14,6 +14,11 @@ import { setShotThumb } from "@/state/shot-actions";
  * of the batch: the shot simply keeps whatever thumbnail it already had,
  * or none, and the caller's loop moves on to the next stale shot.
  *
+ * A read-only tab (a second tab on the same project) never renders or
+ * writes: nothing it produces would ever be saved, so it returns before
+ * touching the renderer or the blob store, leaving whatever thumbnail is
+ * already on screen exactly as it is.
+ *
  * Kept in its own file, not ThumbnailWorker.tsx: a file mounted as a React
  * component may only export components, or Vite's fast refresh plugin
  * breaks (react-refresh/only-export-components), and this function needs
@@ -27,9 +32,11 @@ export async function processStaleShot(params: {
   hash: string;
   projectId: string;
   sceneId: string;
+  readOnly?: boolean;
   applyTransient: (recipe: (draft: Project) => void) => void;
 }): Promise<void> {
-  const { gl, scene3d, scene, shot, hash, projectId, sceneId, applyTransient } = params;
+  const { gl, scene3d, scene, shot, hash, projectId, sceneId, readOnly = false, applyTransient } = params;
+  if (readOnly) return;
   try {
     const blob = await renderShotForThumbnail(gl, scene3d, scene, shot);
     const key = `thumb:${shot.id}:${hash}`;
