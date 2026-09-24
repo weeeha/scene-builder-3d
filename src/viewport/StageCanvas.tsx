@@ -38,9 +38,17 @@ function Lighting() {
   );
 }
 
-function pickRig(shotId: string | null, cameraMode: CameraMode, shot: Shot | null, t: number) {
+function pickRig(sceneId: string, shotId: string | null, cameraMode: CameraMode, shot: Shot | null, t: number) {
   if (shotId !== null && shot !== null && cameraMode !== "orbit") {
-    return <ShotCameraRig camera={shot.camera} t={t} />;
+    return (
+      <ShotCameraRig
+        camera={shot.camera}
+        t={t}
+        sceneId={sceneId}
+        shotId={shotId}
+        interactive={cameraMode === "shot"}
+      />
+    );
   }
   if (cameraMode === "plan") {
     return <PlanRig />;
@@ -114,7 +122,7 @@ export function StageCanvas({ sceneId, shotId }: StageCanvasProps) {
       {scene && selectedNode && selectedObjectId && selectedObject?.visible && (
         <Gizmo target={selectedNode} objectId={selectedObjectId} sceneId={scene.id} page={page} shotId={shotId} />
       )}
-      {pickRig(shotId, cameraMode, shot, t)}
+      {pickRig(scene?.id ?? sceneId, shotId, cameraMode, shot, t)}
     </Canvas>
   );
 }
