@@ -1,5 +1,5 @@
 import "fake-indexeddb/auto";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Routes, Route, useParams } from "react-router";
 import { beforeEach, describe, expect, it } from "vitest";
@@ -77,14 +77,23 @@ describe("ExportImportButtons", () => {
     const input = document.querySelector('input[type="file"]') as HTMLInputElement;
     await user.upload(input, file);
 
+    // upload() returns before the import finishes: the change handler reads
+    // the file, writes IndexedDB, then navigates, and MemoryRouter commits
+    // that navigation as a transition on a later tick. "current-project" is
+    // on screen from the first render with the original id, so wait for its
+    // text to change rather than for the element to exist. Navigation is the
+    // handler's last step, so storage is settled once this passes.
+    // Staying on the original project's route would be the pre-fix bug: a
+    // toast with no navigation, leaving the user looking at the project
+    // they were already in rather than the one they just imported.
+    await waitFor(() =>
+      expect(screen.getByTestId("current-project")).not.toHaveTextContent(project.id)
+    );
+
     const { listProjects } = await import("@/storage/project-repo");
     const summaries = await listProjects();
     const imported = summaries.find((summary) => summary.name === "Exported film");
     expect(imported).toBeDefined();
-
-    // Staying on the original project's route would be the pre-fix bug: a
-    // toast with no navigation, leaving the user looking at the project
-    // they were already in rather than the one they just imported.
-    expect(await screen.findByTestId("current-project")).toHaveTextContent(imported!.id);
+    expect(screen.getByTestId("current-project")).toHaveTextContent(imported!.id);
   });
 });
