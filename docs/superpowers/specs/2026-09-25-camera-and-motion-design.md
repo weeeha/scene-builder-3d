@@ -1034,7 +1034,17 @@ The driver is one component, `<PlaybackDriver />`, mounted inside
 the XR session's frame callbacks while a headset session is presenting, so the
 same driver advances the clock in VR. Scene Builder v2's playback loop on
 `window.requestAnimationFrame` (in `app/shots/[shotId]/page.tsx`) is therefore
-not ported. The driver runs ahead of every reader in the same frame: it registers with
+not ported.
+
+`StageCanvas` renders on demand (`frameloop="demand"`, set in M1 to keep
+software WebGL on CI runners from starving the main thread), so `useFrame`
+only runs when something invalidates the canvas. While `playing` is true the
+driver calls `invalidate()` at the end of each `useFrame`, which keeps frames
+coming until playback stops; a paused playhead draws nothing. A `seek` also
+calls `invalidate()` once. Inside an XR session three.js drives frames from
+the session, so the invalidation is harmless there.
+
+The driver runs ahead of every reader in the same frame: it registers with
 `useFrame(cb, PLAYBACK_DRIVER_PRIORITY)`, where `PLAYBACK_DRIVER_PRIORITY = -1`
 is exported from the driver's module, and readers that need the ticked time
 (the M6 recorder) register at `PLAYBACK_DRIVER_PRIORITY + 1`. Negative
@@ -1501,6 +1511,7 @@ overrides it.
 ## Changelog
 
 - 2026-09-25: open questions 1, 2, 3 and 7 decided by Nick after the cross-spec review.
+- 2026-09-25: section 6.4 notes that the stage renders on demand since the M1 fix, so the playback driver invalidates each frame while playing.
 - 2026-09-25: initial spec. Merges the main spec's S3 with the VR spec's
   piece F, applies the 2026-09-25 camera model and lens decisions and R1 to
   R4, and settles the two topics the VR spec deferred to F.
