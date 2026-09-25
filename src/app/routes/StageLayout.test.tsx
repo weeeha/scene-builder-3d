@@ -1,6 +1,6 @@
 import "fake-indexeddb/auto";
 import { useEffect } from "react";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -77,16 +77,25 @@ describe("StageLayout", () => {
     expect(await screen.findByTestId("stage-canvas")).toHaveAttribute("data-shot", "");
     expect(counters.mounts).toBe(1);
 
+    // stage-canvas stays mounted, so findByTestId would resolve at once with
+    // the props from before the click. RouterProvider commits navigation in
+    // a transition that can land on a later tick, so wait on the attribute.
     await user.click(screen.getByRole("link", { name: /Shot 1, Shot 01/ }));
-    expect(await screen.findByTestId("stage-canvas")).toHaveAttribute("data-shot", shot1Id);
+    await waitFor(() =>
+      expect(screen.getByTestId("stage-canvas")).toHaveAttribute("data-shot", shot1Id)
+    );
     expect(counters.mounts).toBe(1);
 
     await user.click(screen.getByRole("link", { name: /Shot 2, Shot 02/ }));
-    expect(await screen.findByTestId("stage-canvas")).toHaveAttribute("data-shot", shot2Id);
+    await waitFor(() =>
+      expect(screen.getByTestId("stage-canvas")).toHaveAttribute("data-shot", shot2Id)
+    );
     expect(counters.mounts).toBe(1);
 
     await user.click(screen.getByRole("link", { name: "Set" }));
-    expect(await screen.findByTestId("stage-canvas")).toHaveAttribute("data-shot", "");
+    await waitFor(() =>
+      expect(screen.getByTestId("stage-canvas")).toHaveAttribute("data-shot", "")
+    );
     expect(counters.mounts).toBe(1);
   });
 
