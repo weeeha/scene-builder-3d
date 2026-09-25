@@ -194,6 +194,12 @@ type Shot = {
 point. Camera tracks are keyframe arrays from day one so S3 adds keys without
 a migration. In S1 and S2 each array holds exactly one key.
 
+M3 replaces `Shot.camera` with `ShotCamera` v2: a shot holds a list of takes
+and one selected take, and one `cameraAt(take, t)` samples both a sparse
+flat-edited track and a dense VR-recorded one. S1's single-key array migrates
+to one take with one key. See
+[`docs/superpowers/specs/2026-09-25-camera-and-motion-design.md`](2026-09-25-camera-and-motion-design.md).
+
 ### Resolve, write target, status, hash
 
 - **Resolve.** The viewport renders only the output of one pure function,
@@ -260,6 +266,11 @@ a migration. In S1 and S2 each array holds exactly one key.
   table, chair, sofa, bed, door, window, car, tree, crate, lamp, stairs, and a
   human-scale reference figure. No downloads and no licences. Kit items are
   `PropAsset` rows with `source: 'kit'`, present in every new project.
+
+S2 is built on the S1 camera model. M3 migrates S2's data to `ShotCamera` v2
+along with S1's, and prop hashing carries over unchanged: `hashShotState`
+keeps covering `assetId` and `unitScale` for the M3 hash, so swapping a
+model still invalidates a render.
 
 ## Porting map
 
@@ -364,11 +375,14 @@ starter kit, zip export and import, storage status panel.
 - **States covered:** empty library, import in progress, import failed, prop
   missing, storage nearly full.
 
-### S3 Motion and S4 Outputs (outline only)
+### S3 and S4: superseded by the roadmap
 
-S3: camera keys and move presets, timeline, object tracks, pose spans,
-auto-key, playback. S4: deterministic clip render, animatic player, storyboard
-export. Each gets its own spec. S4's spec decides the two open questions below.
+S3 merged with VR piece F into **M3 Camera and motion**:
+[`docs/superpowers/specs/2026-09-25-camera-and-motion-design.md`](2026-09-25-camera-and-motion-design.md).
+S4 is **M4 Outputs**:
+[`docs/superpowers/specs/2026-09-25-outputs-design.md`](2026-09-25-outputs-design.md).
+The two open questions below are decided, by R5 and R6 in
+[`docs/roadmap.md`](../../roadmap.md).
 
 ### Reserved for Nick
 
@@ -387,9 +401,11 @@ accounts, any server.
 ## Open questions
 
 1. Where the animatic player lives: a tab beside the pages, or its own route.
+   Decided, R5: its own route, `/p/:projectId/scene/:sceneId/play`. See
+   [`docs/roadmap.md`](../../roadmap.md).
 2. What storyboard export is: frames, PDF, share link.
-
-Both belong to S4 and do not block S0 to S2.
+   Decided, R6: a PDF plus a zip of PNG frames, no share link. See
+   [`docs/roadmap.md`](../../roadmap.md).
 
 ## Changelog
 
@@ -399,3 +415,8 @@ Both belong to S4 and do not block S0 to S2.
   avoid a drag and drop dependency in the skeleton.
 - 2026-09-18: D8 added. The front end uses `@weeeha/ui` and Super AI
   Components, per Nick, replacing the generic shadcn/ui line.
+- 2026-09-25: noted that M3 replaces `Shot.camera` with `ShotCamera` v2 in
+  the data model; pointed the S3/S4 outline at M3 and M4 and their specs;
+  marked both open questions decided (R5, R6) with a link to
+  `docs/roadmap.md`; added a note under Props (S2) that M3 migrates the S2
+  camera model and prop hashing carries over unchanged.
