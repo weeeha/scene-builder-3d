@@ -57,7 +57,12 @@ function pickRig(sceneId: string, shotId: string | null, cameraMode: CameraMode,
   return <OrbitRig />;
 }
 
-/** The one live canvas, mounted once by the stage layout. */
+/** The one live canvas, mounted once by the stage layout. It renders on
+ * demand: a frame is drawn only after a prop change, a controls drag or a
+ * resize, since R3F and drei's controls invalidate on each of those. A
+ * continuous loop redrew an unchanged stage every frame, which on software
+ * WebGL (CI runners without a GPU) starved the main thread. Anything that
+ * animates later (M3 playback) must call invalidate() while it runs. */
 export function StageCanvas({ sceneId, shotId }: StageCanvasProps) {
   const project = useDocumentStore((s) => s.project);
   const cameraMode = useEditorStore((s) => s.cameraMode);
@@ -116,6 +121,7 @@ export function StageCanvas({ sceneId, shotId }: StageCanvasProps) {
       onCreated={handleCreated}
       onPointerDown={handlePointerDown}
       onPointerMissed={handlePointerMissed}
+      frameloop="demand"
     >
       <Lighting />
       <Ground />
