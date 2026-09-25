@@ -36,12 +36,14 @@ Sketches, sitemap and concept map: [FigJam board](https://www.figma.com/board/Vv
 | S1 selection, framing, pages, shot strip, thumbnails, shortcuts | Tasks 17 to 22 in progress | same branch |
 | VR operator mode | Spec merged, camera feel spike built ([PR #2](https://github.com/weeeha/scene-builder-3d/pull/2)) | `docs/superpowers/specs/2026-09-18-vr-operator-design.md`, `spikes/vr-camera-feel/` |
 | VR headset run | Waiting on a Quest session | checklist in `spikes/vr-camera-feel/README.md` |
+| Roadmap and M3 to M10 specs | Drafted, in review | `docs/roadmap.md`, `docs/superpowers/specs/2026-09-25-*-design.md` |
 
 ## Next
 
-1. Finish S1 on PR #3 and check the preview in Chrome and Safari.
-2. Run the spike on a Quest and record the results in section 4.10 of the VR spec.
-3. S2: props, per the design spec.
+1. M1: finish S1 on PR #3 and check the preview in Chrome and Safari.
+2. M2: props, per the design spec, then the milestones in `docs/roadmap.md`.
+3. Run the Quest spike in parallel and record the results in section 4.10 of
+   the VR spec, before M5.
 
 ## Working rules
 

@@ -50,6 +50,13 @@ Considered and set aside: a native Quest app in Unity (like VR Museum). It offer
 | V3 | Rigs | Tripod, dolly, crane, drone | V2 |
 | V4 | Director's calls | "Action" and "cut" by voice, take numbering | V2, and a timeline in the suite so there is something to play |
 
+Piece F is merged into **M3 Camera and motion**. V1 to V4 are **M5 to M8** in
+[`docs/roadmap.md`](../../roadmap.md), each with its own spec file:
+[M5 VR Scout](2026-09-25-vr-scout-design.md),
+[M6 VR Operate handheld](2026-09-25-vr-operate-design.md),
+[M7 VR Rigs](2026-09-25-vr-rigs-design.md),
+[M8 VR Director's calls](2026-09-25-vr-directors-calls-design.md).
+
 Sequence: spike → findings written into section 4.10 → suite spec S with F designed in (its own brainstorm) → V1, V2, V3, V4.
 
 Two notes on dependencies:
@@ -210,6 +217,12 @@ Six decisions. F, V1, V2, V3 and V4 each refine their part in their own spec.
 
 A shot holds a list of takes and one selected take. Setting start and end framing in the flat editor produces a take as well, so flat and VR produce the same thing, and v1 data migrates to "one take, selected".
 
+Nick decided on 2026-09-25 that a take's move is a keyframe track: sparse
+when it comes from flat editing, dense when it comes from a VR recording,
+sampled by one `cameraAt`. This replaces the `CameraMove` union of
+`framings | path` below. The final types live in
+[`docs/superpowers/specs/2026-09-25-camera-and-motion-design.md`](2026-09-25-camera-and-motion-design.md).
+
 ```ts
 type Vec3 = [number, number, number];
 type Quat = [number, number, number, number];            // x, y, z, w
@@ -366,11 +379,21 @@ Voice-directed blocking, multi-user sessions, hand tracking, zoom lenses within 
 
 ## 11. Deferred to the named piece's own spec
 
-| Topic | Decided in |
-| --- | --- |
-| Final body and format preset lists, export dimensions per format | F |
-| Where path samples are stored (IndexedDB or backend) | F |
-| Locomotion details, tabletop ("dollhouse") scale view | V1 |
-| Take management: compare, delete, re-select, re-shoot on the same rig | V2 |
-| Rig placement UI and rig visuals | V3 |
-| Keyword detector choice, slate and take numbering by voice | V4 |
+| Topic | Decided in | Spec file |
+| --- | --- | --- |
+| Final body and format preset lists, export dimensions per format | F | [camera-and-motion](2026-09-25-camera-and-motion-design.md) |
+| Where path samples are stored (IndexedDB or backend) | F | [camera-and-motion](2026-09-25-camera-and-motion-design.md) |
+| Locomotion details, tabletop ("dollhouse") scale view | V1 | [vr-scout](2026-09-25-vr-scout-design.md) |
+| Take management: compare, delete, re-select, re-shoot on the same rig | V2 | [vr-operate](2026-09-25-vr-operate-design.md) |
+| Rig placement UI and rig visuals | V3 | [vr-rigs](2026-09-25-vr-rigs-design.md) |
+| Keyword detector choice, slate and take numbering by voice | V4 | [vr-directors-calls](2026-09-25-vr-directors-calls-design.md) |
+
+## 12. Changelog
+
+- 2026-09-18: design approved in chat, spike scoped (section 4).
+- 2026-09-25: piece F noted as merged into M3 Camera and motion, V1 to V4
+  pointed at M5 to M8 and their spec files; section 5.1 notes Nick's
+  2026-09-25 decision that a take's move is a keyframe track sampled by one
+  `cameraAt`, replacing the `framings | path` union, with final types in the
+  camera-and-motion spec; section 11 links each deferred topic to the spec
+  that now owns it.
