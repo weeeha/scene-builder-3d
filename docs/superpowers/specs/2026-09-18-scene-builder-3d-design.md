@@ -43,6 +43,7 @@ real props.
 | D5 | First build is a walking skeleton, then props. | 2026-09-18 |
 | D6 | Approach A: browser-only app, static deploy, no server. | 2026-09-18 |
 | D7 | No sequences level. Project, then scenes, then shots. | 2026-09-18 |
+| D8 | The front end uses the Minimal Design System (`@weeeha/ui`) and Super AI Components. No generic shadcn copies, no hand-rolled controls the kits already have. | 2026-09-18 |
 
 ### Alternatives considered
 
@@ -60,8 +61,8 @@ real props.
 ## Architecture
 
 Stack: Vite, React 19, TypeScript, react-three-fiber 9, drei 10, Zustand 5 with
-Immer, React Router 7, Tailwind 4, shadcn/ui for panels, `idb`, `fflate`, Zod,
-Vitest, Playwright. Units are metres, Y is up, the ground plane is `y = 0`.
+Immer, React Router 7, Tailwind 4, `idb`, `fflate`, Zod, Vitest, Playwright.
+The front end is built from Nick's own kits, see "Front end" below. Units are metres, Y is up, the ground plane is `y = 0`.
 
 Dependencies point one way, down this table. Storage sits beside state as a
 swappable adapter.
@@ -86,6 +87,27 @@ Undo covers the document only. It uses Immer patches and inverse patches, 100
 deep, held in memory. Selection and playhead never enter the undo stack, and
 playhead changes never trigger a save.
 
+### Front end
+
+- **`@weeeha/ui`**, the Minimal Design System (`weeeha/Minimal-Design-System`):
+  about 75 components on a three-tier token system, shipped as source with
+  path exports (`@weeeha/ui/components/button`). Its README documents a
+  verified Vite + Tailwind 4 consumer. The kit is private and unpublished, so
+  it is vendored into `packages/ui` as an npm workspace package by
+  `scripts/sync-ui.sh`, pinned to an upstream commit recorded in
+  `packages/ui/VENDORED.md`. CI and Vercel previews then need no secrets.
+  Files under `packages/ui` are never edited by hand. A fix goes upstream,
+  followed by a re-sync.
+- **Super AI Components** (`VV-DSGN-INC/Super-AI-Components`), a shadcn
+  registry at `super-ai-components.vercel.app`. Four items are used: `kbd`,
+  `shortcuts-sheet`, `choice-chips` for the shot type, and `field-row` for
+  inspector rows. `field-row` has a per-field reset affordance, and on the
+  shot page that reset means "clear this shot's override for this field and
+  fall back to the set".
+- App code uses the kit's semantic tokens only. The one exception is object
+  colors inside the 3D scene. Light and dark mode are both checked before UI
+  work is called done.
+
 ## Navigation
 
 ```
@@ -102,8 +124,8 @@ playhead changes never trigger a save.
   that stays mounted. Leaving to the board or the prop library unmounts it.
 - **Shot strip.** `[Set] [01] [02] [03] [+]` along the bottom of both pages.
   Set opens the scene page. A number opens that shot. Each shot card shows a
-  thumbnail, name and duration, and offers duplicate, delete and drag to
-  reorder. A thumbnail is rendered through that shot's camera into an
+  thumbnail, name and duration, and offers duplicate, delete and reorder
+  (move buttons in S1, drag later). A thumbnail is rendered through that shot's camera into an
   offscreen target, never grabbed from the screen, so any shot can be
   refreshed from either page. A refresh runs, debounced, for every shot whose
   state hash differs from the hash stored with its thumbnail.
@@ -389,6 +411,10 @@ accounts, any server.
 
 - 2026-09-18: initial spec from the brainstorm (D1 to D7, approach A, three
   design sections approved in chat).
+- 2026-09-18: shot reorder uses move buttons in S1, with drag deferred, to
+  avoid a drag and drop dependency in the skeleton.
+- 2026-09-18: D8 added. The front end uses `@weeeha/ui` and Super AI
+  Components, per Nick, replacing the generic shadcn/ui line.
 - 2026-09-25: noted that M3 replaces `Shot.camera` with `ShotCamera` v2 in
   the data model; pointed the S3/S4 outline at M3 and M4 and their specs;
   marked both open questions decided (R5, R6) with a link to

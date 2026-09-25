@@ -1,6 +1,6 @@
 # scene-builder-3d
 
-> **Status:** exploration · **Stage:** S1 walking skeleton in progress ([PR #3](https://github.com/weeeha/scene-builder-3d/pull/3)) · **Preview:** [Vercel preview](https://scene-builder-3d-g1fjvyg2k-nick-vyhouskis-projects.vercel.app) (Vercel login required, shows the S0 placeholder shell)
+> **Status:** exploration · **Stage:** S1 walking skeleton done, in review on [PR #3](https://github.com/weeeha/scene-builder-3d/pull/3) · **Preview:** [Vercel preview](https://scene-builder-3d-ptct3bqa3-nick-vyhouskis-projects.vercel.app) (Vercel login required)
 > Everything published from this repo starts unlisted and is labeled `exploration`.
 
 A shot-first 3D previs tool for the browser. Build a set from props, place
@@ -26,14 +26,31 @@ Two earlier codebases feed this one. Neither is the home for this work.
 
 Sketches, sitemap and concept map: [FigJam board](https://www.figma.com/board/Vv6Q75mVAOujsE9qsJ0nrM/Job-Smith?node-id=0-1).
 
+## What is built
+
+S0 (scaffold) and S1 (walking skeleton) are done: create a project, dress a
+set with primitives and dolls, add and frame shots, move between them in one
+click on a canvas that never remounts, autosave, undo and redo, JSON export
+and import. See `docs/superpowers/specs/2026-09-18-scene-builder-3d-design.md`
+for what S2 (props) adds next.
+
+Known limitations in S1:
+
+- A doll's per-shot pose override is not reflected in the thumbnail of a
+  shot other than the one on screen.
+- A deleted shot's thumbnail stays in browser storage until S2 adds a
+  sweep; deleting it with the shot would break undo.
+- Memory-only mode when IndexedDB is unavailable and rotation snap arrive
+  in S2.
+
 ## Where it stands (2026-09-24)
 
 | Piece | State | Where |
 | --- | --- | --- |
 | Design spec | Merged ([PR #1](https://github.com/weeeha/scene-builder-3d/pull/1)) | `docs/superpowers/specs/2026-09-18-scene-builder-3d-design.md` |
 | S0 and S1 plan, 22 tasks | Merged ([PR #1](https://github.com/weeeha/scene-builder-3d/pull/1)) | `docs/superpowers/plans/2026-09-18-s0-s1-walking-skeleton.md` |
-| S0 scaffold; S1 domain, storage, state, 3D canvas | Tasks 1 to 16 done, CI green | branch `feat/s0-s1-walking-skeleton`, draft [PR #3](https://github.com/weeeha/scene-builder-3d/pull/3) |
-| S1 selection, framing, pages, shot strip, thumbnails, shortcuts | Tasks 17 to 22 in progress | same branch |
+| S0 scaffold; S1 domain, storage, state, 3D canvas | Tasks 1 to 22 done | branch `feat/s0-s1-walking-skeleton`, in review on draft [PR #3](https://github.com/weeeha/scene-builder-3d/pull/3) |
+| S1 selection, framing, pages, shot strip, thumbnails, shortcuts | Tasks 1 to 22 done | same branch, in review on draft PR #3 |
 | VR operator mode | Spec merged, camera feel spike built ([PR #2](https://github.com/weeeha/scene-builder-3d/pull/2)) | `docs/superpowers/specs/2026-09-18-vr-operator-design.md`, `spikes/vr-camera-feel/` |
 | VR headset run | Waiting on a Quest session | checklist in `spikes/vr-camera-feel/README.md` |
 | Roadmap and M3 to M10 specs | Drafted, in review | `docs/roadmap.md`, `docs/superpowers/specs/2026-09-25-*-design.md` |
