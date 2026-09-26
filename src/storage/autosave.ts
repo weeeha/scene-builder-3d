@@ -55,9 +55,15 @@ export function createAutosaver(opts: {
       await opts.save(project);
       inFlight = false;
       failures = 0;
-      pending = null;
-      if (!disposed) {
-        opts.onStatus("saved", 0);
+      // A schedule() that landed while this save was in flight replaced
+      // `pending` with a newer edit. That edit is still unsaved: leave it
+      // for its own debounce timer (or needsRerun below) to pick up, and
+      // leave the status at the "pending" schedule() already reported.
+      if (pending === project) {
+        pending = null;
+        if (!disposed) {
+          opts.onStatus("saved", 0);
+        }
       }
     } catch {
       inFlight = false;
