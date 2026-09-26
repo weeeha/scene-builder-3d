@@ -156,4 +156,72 @@ describe("createAutosaver", () => {
     await vi.advanceTimersByTimeAsync(5000);
     expect(save).toHaveBeenCalledTimes(2);
   });
+
+  describe("an edit scheduled while an earlier save is in flight and then succeeds", () => {
+    function setup() {
+      const onStatus = vi.fn();
+      let resolveA!: () => void;
+      const save = vi
+        .fn()
+        .mockImplementationOnce(
+          () =>
+            new Promise<void>((resolve) => {
+              resolveA = resolve;
+            }),
+        )
+        .mockResolvedValue(undefined);
+      const autosaver = createAutosaver({ save, onStatus });
+      return { save, onStatus, autosaver, resolveA: () => resolveA() };
+    }
+
+    it("is saved once its own debounce elapses after the earlier save settles", async () => {
+      const { save, autosaver, resolveA } = setup();
+      const projectA = createProject("A");
+      const projectB = createProject("B");
+
+      autosaver.schedule(projectA);
+      await vi.advanceTimersByTimeAsync(500); // debounce elapses, A's save starts and stays in flight
+      autosaver.schedule(projectB); // edited while A is still being written
+
+      resolveA();
+      await vi.advanceTimersByTimeAsync(0); // A settles; B's debounce is still counting down
+      await vi.advanceTimersByTimeAsync(500); // B's debounce elapses
+
+      expect(save).toHaveBeenCalledTimes(2);
+      expect(save).toHaveBeenLastCalledWith(projectB);
+    });
+
+    it("is saved right after the earlier save settles when its debounce already fired during it", async () => {
+      const { save, autosaver, resolveA } = setup();
+      const projectA = createProject("A");
+      const projectB = createProject("B");
+
+      autosaver.schedule(projectA);
+      await vi.advanceTimersByTimeAsync(500); // debounce elapses, A's save starts and stays in flight
+      autosaver.schedule(projectB);
+      await vi.advanceTimersByTimeAsync(500); // B's debounce fires while A is still in flight
+      expect(save).toHaveBeenCalledTimes(1);
+
+      resolveA();
+      await vi.advanceTimersByTimeAsync(0); // A settles and the queued rerun starts
+
+      expect(save).toHaveBeenCalledTimes(2);
+      expect(save).toHaveBeenLastCalledWith(projectB);
+    });
+
+    it("keeps the status at pending, not saved, until that newer edit is written", async () => {
+      const { onStatus, autosaver, resolveA } = setup();
+
+      autosaver.schedule(createProject("A"));
+      await vi.advanceTimersByTimeAsync(500); // A's save starts and stays in flight
+      autosaver.schedule(createProject("B"));
+
+      resolveA();
+      await vi.advanceTimersByTimeAsync(0); // A settles; B is still unsaved
+      expect(onStatus).toHaveBeenLastCalledWith("pending", 0);
+
+      await vi.advanceTimersByTimeAsync(500); // B's debounce elapses and B is written
+      expect(onStatus).toHaveBeenLastCalledWith("saved", 0);
+    });
+  });
 });
