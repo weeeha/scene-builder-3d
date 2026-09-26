@@ -55,8 +55,14 @@ function renderProjectLayout(projectId: string) {
 
 beforeEach(async () => {
   await resetDbForTests();
+  localStorage.clear();
   installFakeLockManager();
 });
+
+function readStash(projectId: string): { baseUpdatedAt: string; project: { name: string } } | null {
+  const raw = localStorage.getItem(`sb3d:unsaved:${projectId}`);
+  return raw === null ? null : JSON.parse(raw);
+}
 
 afterEach(() => {
   vi.useRealTimers();
@@ -199,6 +205,79 @@ describe("ProjectLayout", () => {
     expect(useDocumentStore.getState().saveStatus).toBe(bStatusBeforeAFailed);
     expect(useDocumentStore.getState().saveFailures).toBe(bFailuresBeforeAFailed);
     expect(screen.queryByText("Changes are not being saved")).not.toBeInTheDocument();
+  });
+
+  it("stashes an unsaved edit in localStorage on pagehide, based on the version it loaded", async () => {
+    const project = createProject("Unsaved");
+    await saveProject(project);
+    renderProjectLayout(project.id);
+    await screen.findByText("board content");
+
+    useDocumentStore.getState().apply((draft) => {
+      draft.name = "Renamed";
+    });
+    window.dispatchEvent(new Event("pagehide"));
+
+    // Read synchronously: pagehide is the last moment the page can run code,
+    // so the stash has to exist by the time the event returns.
+    expect(readStash(project.id)).toEqual({
+      baseUpdatedAt: project.updatedAt,
+      project: expect.objectContaining({ name: "Renamed" }),
+    });
+  });
+
+  it("does not stash on pagehide when every edit is already saved, and bases a later stash on the last save", async () => {
+    const project = createProject("Saved");
+    await saveProject(project);
+    renderProjectLayout(project.id);
+    await screen.findByText("board content");
+
+    useDocumentStore.getState().apply((draft) => {
+      draft.name = "First edit";
+    });
+    const firstEdit = useDocumentStore.getState().project!;
+    await vi.waitFor(() => expect(useDocumentStore.getState().saveStatus).toBe("saved"), { timeout: 3000 });
+
+    window.dispatchEvent(new Event("pagehide"));
+    expect(readStash(project.id)).toBeNull();
+
+    useDocumentStore.getState().apply((draft) => {
+      draft.name = "Second edit";
+    });
+    window.dispatchEvent(new Event("pagehide"));
+    expect(readStash(project.id)?.baseUpdatedAt).toBe(firstEdit.updatedAt);
+  });
+
+  it("clears the stash once the edit it holds is saved after all", async () => {
+    // The page can survive a pagehide (the back/forward cache restores it),
+    // and then the flush started in pagehide completes normally.
+    const project = createProject("Survivor");
+    await saveProject(project);
+    renderProjectLayout(project.id);
+    await screen.findByText("board content");
+
+    useDocumentStore.getState().apply((draft) => {
+      draft.name = "Renamed";
+    });
+    window.dispatchEvent(new Event("pagehide"));
+    expect(readStash(project.id)).not.toBeNull();
+
+    await vi.waitFor(() => expect(readStash(project.id)).toBeNull(), { timeout: 3000 });
+  });
+
+  it("does not stash anything in a read-only tab", async () => {
+    const project = createProject("Held Elsewhere");
+    await saveProject(project);
+    await acquireProjectLock(project.id);
+    renderProjectLayout(project.id);
+    await screen.findByText("Read-only");
+
+    useDocumentStore.getState().apply((draft) => {
+      draft.name = "Ignored";
+    });
+    window.dispatchEvent(new Event("pagehide"));
+
+    expect(readStash(project.id)).toBeNull();
   });
 
   it("shows an error state and leaves no lock behind when loading the project throws", async () => {
