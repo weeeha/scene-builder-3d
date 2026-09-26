@@ -4,6 +4,8 @@ import { Outlet, useParams, Link } from "react-router";
 import { loadProject, saveProject } from "@/storage/project-repo";
 import { acquireProjectLock } from "@/storage/project-lock";
 import { createAutosaver } from "@/storage/autosave";
+import { clearStashedProject, stashUnsavedProject } from "@/storage/unload-stash";
+import type { Project } from "@/domain/types";
 import { useDocumentStore, setAutosaver } from "@/state/document-store";
 
 import {
@@ -97,6 +99,10 @@ export function ProjectLayout() {
 
     let cancelled = false;
     let autosaver: ReturnType<typeof createAutosaver> | null = null;
+    // The last version of this project this tab knows IndexedDB holds: the
+    // one it loaded, then each one the autosaver finished writing. While the
+    // store's document is a different object, there is an unsaved edit.
+    let durable: Project | null = null;
 
     async function open() {
       try {
@@ -115,7 +121,13 @@ export function ProjectLayout() {
         releaseRef.current = lock.release;
 
         autosaver = createAutosaver({
-          save: saveProject,
+          save: async (next) => {
+            await saveProject(next);
+            durable = next;
+            // A stash left by a pagehide this page survived (the back/forward
+            // cache) was based on an older version, so it is stale now.
+            clearStashedProject(next.id);
+          },
           onStatus: (status, failures) => {
             // Guards against a stale write: once this effect's cleanup has
             // run (project changed, or the layout unmounted), a save that
@@ -133,6 +145,7 @@ export function ProjectLayout() {
         setAutosaver(autosaver);
 
         useDocumentStore.getState().load(loaded, { readOnly: lock.readOnly });
+        durable = useDocumentStore.getState().project;
         setState("ready");
 
         if (!persistRequested) {
@@ -160,13 +173,24 @@ export function ProjectLayout() {
         flush();
       }
     };
+    const onPageHide = () => {
+      // The page may be gone as soon as this returns, and an IndexedDB write
+      // started here never commits (see unload-stash.ts). Stash any unsaved
+      // edit synchronously; the next load writes it. The flush still runs
+      // for the case where the page survives, in the back/forward cache.
+      const current = useDocumentStore.getState().project;
+      if (durable && current && current !== durable && current.id === durable.id) {
+        stashUnsavedProject(current, durable.updatedAt);
+      }
+      flush();
+    };
     document.addEventListener("visibilitychange", onVisibilityChange);
-    window.addEventListener("pagehide", flush);
+    window.addEventListener("pagehide", onPageHide);
 
     return () => {
       cancelled = true;
       document.removeEventListener("visibilitychange", onVisibilityChange);
-      window.removeEventListener("pagehide", flush);
+      window.removeEventListener("pagehide", onPageHide);
       setAutosaver(null);
       // Close synchronously, before any of the async teardown below. React
       // always finishes running this cleanup before the next effect run (the
