@@ -21,20 +21,29 @@ type StageCanvasProps = { sceneId: string; shotId: string | null };
 
 const CLICK_SLOP = 4;
 
+/** Built once at module scope on purpose. drei's Environment re-captures its
+ * cube camera whenever its children change identity, and every capture makes
+ * three rebuild the PMREM environment map on the next frame. Inline JSX would
+ * be a new children array on every stage render (every document edit), and
+ * on software WebGL (CI runners without a GPU) one rebuild costs seconds. */
+const ENVIRONMENT_LIGHTFORMERS = (
+  <>
+    <Lightformer form="rect" intensity={2} position={[0, 5, 0]} scale={[10, 10, 1]} rotation={[Math.PI / 2, 0, 0]} />
+    <Lightformer form="rect" intensity={1} position={[-5, 2, 5]} scale={[5, 5, 1]} />
+    <Lightformer form="rect" intensity={1} position={[5, 2, -5]} scale={[5, 5, 1]} rotation={[0, Math.PI, 0]} />
+  </>
+);
+
 /** Ambient + directional key light, plus a drei Environment built entirely
  * from Lightformer children so props and metal materials get a believable
  * reflection with no HDRI fetched from a CDN (the fix Film Planner's
  * viewer needed for metal materials rendering near black). */
-function Lighting() {
+export function Lighting() {
   return (
     <>
       <ambientLight intensity={0.6} />
       <directionalLight position={[5, 10, 4]} intensity={1.2} />
-      <Environment resolution={256}>
-        <Lightformer form="rect" intensity={2} position={[0, 5, 0]} scale={[10, 10, 1]} rotation={[Math.PI / 2, 0, 0]} />
-        <Lightformer form="rect" intensity={1} position={[-5, 2, 5]} scale={[5, 5, 1]} />
-        <Lightformer form="rect" intensity={1} position={[5, 2, -5]} scale={[5, 5, 1]} rotation={[0, Math.PI, 0]} />
-      </Environment>
+      <Environment resolution={256}>{ENVIRONMENT_LIGHTFORMERS}</Environment>
     </>
   );
 }

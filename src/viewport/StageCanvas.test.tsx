@@ -1,7 +1,9 @@
 import { render } from "@testing-library/react";
+import ReactThreeTestRenderer from "@react-three/test-renderer";
+import { CubeCamera } from "three";
 import { describe, expect, it, vi } from "vitest";
 
-import { StageCanvas } from "./StageCanvas";
+import { Lighting, StageCanvas } from "./StageCanvas";
 
 const captured = vi.hoisted(() => ({ props: null as Record<string, unknown> | null }));
 
@@ -25,5 +27,30 @@ describe("StageCanvas", () => {
   it("renders on demand, not in a continuous loop", () => {
     render(<StageCanvas sceneId="scene-1" shotId={null} />);
     expect(captured.props?.frameloop).toBe("demand");
+  });
+});
+
+describe("Lighting", () => {
+  // drei's <Environment> re-captures its cube camera whenever its children
+  // change identity, and each capture forces three to rebuild the PMREM
+  // environment map on the next frame. The lighting never changes, yet it
+  // re-renders with every stage render (every document edit). On software
+  // WebGL (CI runners without a GPU) one PMREM rebuild costs seconds, which
+  // pushed the S1 smoke test past its 30 s limit in Chromium.
+  it("captures the environment once, not again on each re-render", async () => {
+    const update = vi.spyOn(CubeCamera.prototype, "update").mockImplementation(() => {});
+    try {
+      const renderer = await ReactThreeTestRenderer.create(<Lighting />);
+      expect(update).toHaveBeenCalledTimes(1);
+
+      await renderer.update(<Lighting />);
+      await renderer.update(<Lighting />);
+      await renderer.update(<Lighting />);
+
+      expect(update).toHaveBeenCalledTimes(1);
+      await renderer.unmount();
+    } finally {
+      update.mockRestore();
+    }
   });
 });
