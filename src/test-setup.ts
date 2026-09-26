@@ -21,6 +21,21 @@ if (typeof window !== "undefined" && !window.matchMedia) {
     }) as MediaQueryList;
 }
 
+// Node 25+ defines its own global localStorage, which is undefined unless
+// Node runs with --localstorage-file. Vitest's jsdom environment only copies
+// the window properties the global does not already have, so under Node 26
+// jsdom tests see Node's undefined localStorage instead of jsdom's working
+// one. Vitest exposes the JSDOM instance as globalThis.jsdom; point
+// localStorage back at its window's.
+const jsdomWindow = (globalThis as { jsdom?: { window: Window } }).jsdom?.window;
+if (jsdomWindow) {
+  Object.defineProperty(globalThis, "localStorage", {
+    value: jsdomWindow.localStorage,
+    configurable: true,
+    writable: true,
+  });
+}
+
 // jsdom has no ResizeObserver; Radix's Slider (via @radix-ui/react-use-size)
 // reads it on mount to measure the thumb, so any test rendering a Slider
 // throws without this stub.
