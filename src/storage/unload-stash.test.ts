@@ -97,12 +97,37 @@ describe("restoring a stash on load", () => {
     expect(localStorage.getItem("theme")).toBe("dark");
   });
 
+  it("never overwrites a save that starts while it is checking the stored version", async () => {
+    const stored = { ...createProject("Heist"), updatedAt: "2026-09-01T00:00:00.000Z" };
+    await saveProject(stored);
+    stashUnsavedProject(edited(stored, "2026-09-01T00:00:01.000Z"), stored.updatedAt);
+    const newer = { ...stored, name: "Saved during restore", updatedAt: "2026-09-01T00:00:09.000Z" };
+
+    // Another writer's save starts the moment restore reads the stored
+    // version. If the read and the write were separate transactions, that
+    // save would land between them and the stash would then clobber it.
+    const originalGet = IDBObjectStore.prototype.get;
+    let concurrentSave: Promise<void> | undefined;
+    vi.spyOn(IDBObjectStore.prototype, "get").mockImplementation(function (this: IDBObjectStore, query) {
+      concurrentSave ??= saveProject(newer);
+      return originalGet.call(this, query);
+    });
+
+    await restoreStashedProjects(await openDb());
+    await concurrentSave;
+    vi.restoreAllMocks();
+
+    expect(await loadProject(stored.id)).toEqual(newer);
+  });
+
   it("keeps a stash whose IndexedDB write fails, so a later load can retry it", async () => {
     const stored = { ...createProject("Heist"), updatedAt: "2026-09-01T00:00:00.000Z" };
     await saveProject(stored);
     stashUnsavedProject(edited(stored, "2026-09-01T00:00:01.000Z"), stored.updatedAt);
     const db = await openDb();
-    vi.spyOn(db, "put").mockRejectedValue(new Error("quota exceeded"));
+    vi.spyOn(IDBObjectStore.prototype, "put").mockImplementation(() => {
+      throw new DOMException("full", "QuotaExceededError");
+    });
 
     await expect(restoreStashedProjects(db)).resolves.toBeUndefined();
 
