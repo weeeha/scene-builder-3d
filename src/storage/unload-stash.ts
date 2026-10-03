@@ -90,10 +90,14 @@ export async function restoreStashedProjects(db: IDBPDatabase<Sb3dSchema>): Prom
     }
 
     try {
-      const stored = await db.get("projects", stash.project.id);
+      // One readwrite transaction for the check and the write, so a save
+      // from another writer cannot land between them.
+      const tx = db.transaction("projects", "readwrite");
+      const stored = await tx.store.get(stash.project.id);
       if (stored !== undefined && stored.updatedAt === stash.baseUpdatedAt) {
-        await db.put("projects", stash.project);
+        await tx.store.put(stash.project);
       }
+      await tx.done;
     } catch {
       // Keep the stash: IndexedDB failed, not the stash, so a later load
       // can try again.
