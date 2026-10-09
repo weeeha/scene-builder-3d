@@ -1,6 +1,6 @@
 # scene-builder-3d
 
-> **Status:** exploration · **Stage:** S1 walking skeleton done, in review on [PR #3](https://github.com/weeeha/scene-builder-3d/pull/3) · **Preview:** [Vercel preview](https://scene-builder-3d-mfe0v2odl-nick-vyhouskis-projects.vercel.app) (Vercel login required)
+> **Status:** exploration · **Stage:** S1 walking skeleton done and merged ([PR #3](https://github.com/weeeha/scene-builder-3d/pull/3)) · **Preview:** [Vercel preview](https://scene-builder-3d-mfe0v2odl-nick-vyhouskis-projects.vercel.app) (requires Vercel team access, not a public link)
 > Everything published from this repo starts unlisted and is labeled `exploration`.
 
 A shot-first 3D previs tool for the browser. Build a set from props, place
@@ -43,24 +43,45 @@ Known limitations in S1:
 - Memory-only mode when IndexedDB is unavailable and rotation snap arrive
   in S2.
 
-## Where it stands (2026-09-24)
+## Where it stands (2026-10-09)
 
 | Piece | State | Where |
 | --- | --- | --- |
 | Design spec | Merged ([PR #1](https://github.com/weeeha/scene-builder-3d/pull/1)) | `docs/superpowers/specs/2026-09-18-scene-builder-3d-design.md` |
 | S0 and S1 plan, 22 tasks | Merged ([PR #1](https://github.com/weeeha/scene-builder-3d/pull/1)) | `docs/superpowers/plans/2026-09-18-s0-s1-walking-skeleton.md` |
-| S0 scaffold; S1 domain, storage, state, 3D canvas | Tasks 1 to 22 done | branch `feat/s0-s1-walking-skeleton`, in review on draft [PR #3](https://github.com/weeeha/scene-builder-3d/pull/3) |
-| S1 selection, framing, pages, shot strip, thumbnails, shortcuts | Tasks 1 to 22 done | same branch, in review on draft PR #3 |
-| VR operator mode | Spec merged, camera feel spike built ([PR #2](https://github.com/weeeha/scene-builder-3d/pull/2)) | `docs/superpowers/specs/2026-09-18-vr-operator-design.md`, `spikes/vr-camera-feel/` |
+| S0 scaffold; S1 domain, storage, state, 3D canvas | Tasks 1 to 22 done | Merged to `main` ([PR #3](https://github.com/weeeha/scene-builder-3d/pull/3)) |
+| S1 selection, framing, pages, shot strip, thumbnails, shortcuts | Tasks 1 to 22 done | Merged to `main` (PR #3) |
+| VR operator mode | Spec and throwaway camera feel spike merged ([PR #2](https://github.com/weeeha/scene-builder-3d/pull/2)) | `docs/superpowers/specs/2026-09-18-vr-operator-design.md`, `spikes/vr-camera-feel/` |
 | VR headset run | Waiting on a Quest session | checklist in `spikes/vr-camera-feel/README.md` |
-| Roadmap and M3 to M10 specs | Drafted, in review | `docs/roadmap.md`, `docs/superpowers/specs/2026-09-25-*-design.md` |
+| Roadmap and M3 to M10 specs | Merged ([PR #5](https://github.com/weeeha/scene-builder-3d/pull/5)) | `docs/roadmap.md`, `docs/superpowers/specs/2026-09-25-*-design.md` |
 
 ## Next
 
-1. M1: finish S1 on PR #3 and check the preview in Chrome and Safari.
+1. M1: check the S1 done-when items on the preview in Chrome and Safari. PR #3 is merged.
 2. M2: props, per the design spec, then the milestones in `docs/roadmap.md`.
 3. Run the Quest spike in parallel and record the results in section 4.10 of
    the VR spec, before M5.
+
+## Run locally
+
+Node 22 or newer. No environment variables are needed.
+
+```
+npm install
+npm run dev        # Vite dev server
+npm run build      # production build to dist/
+npm run preview    # serve the build
+npm run typecheck
+npm run lint
+npm test           # Vitest
+npm run e2e        # Playwright, Chromium and WebKit; serves the build on port 4173
+```
+
+Routes: `/` lists projects, `/p/:projectId` is the shot board, `/p/:projectId/props`
+is a placeholder until S2, and `/p/:projectId/scene/:sceneId` and
+`/p/:projectId/shot/:shotId` are the scene and shot pages. Source is under `src/`
+(`app` routes and components, `domain`, `state`, `storage`, `viewport`); the shared
+UI kit is the vendored workspace package in `packages/ui`.
 
 ## Working rules
 
