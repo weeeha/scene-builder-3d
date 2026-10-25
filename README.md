@@ -7,6 +7,16 @@ A shot-first 3D previs tool for the browser. Build a set from props, place
 characters, frame each shot with a camera, and watch the scene play back before
 anything is filmed or generated. Reference product: [Previs Pro](https://www.previspro.com).
 
+![The scene page: a set with three boxes and two dolls in the orbit camera](docs/screenshots/scene-page-orbit.webp)
+
+## Screenshots
+
+Captured from a local build of `main` (`npm run dev`). The set was dressed through the toolbar and the position fields.
+
+![The shot page: Shot 01 framed with a 35 mm lens, with the shot strip along the bottom](docs/screenshots/shot-page-camera.webp)
+
+The shot page frames one camera per shot. The strip at the bottom moves between the set and each shot.
+
 ## Where it comes from
 
 Two earlier codebases feed this one. Neither is the home for this work.
