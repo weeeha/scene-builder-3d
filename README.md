@@ -1,5 +1,13 @@
 # scene-builder-3d
 
+**Problem.** Blocking a film scene shot by shot needs a set, characters and cameras in one place, and a fast way to move between shots. The two earlier attempts each held half: a good shot editor with five primitive shapes and no tests, and a tested stage layer with no live page.
+
+**Idea.** Shot first. A scene page and a shot page share one live 3D canvas that never remounts, a shot strip moves between shots in one click, and the set is editable from both pages through a "writes to: Set / This shot" switch.
+
+**Built.** A browser-only React app (Vite, react-three-fiber, TypeScript) that creates a project, dresses a set with primitives and dolls, frames shots with a lens, and has autosave, undo and redo, and JSON export. Props, camera motion, outputs and VR are specified in a roadmap but not built. 121 commits on 10 days, Sep 18 to Oct 30, 2026.
+
+**Decision.** A browser-only app with a static deploy, instead of Next.js with PGlite. PGlite has the strongest durability, but a deployed preview would have no data because it cannot run on serverless.
+
 > **Status:** exploration · **Stage:** S1 walking skeleton done and merged ([PR #3](https://github.com/weeeha/scene-builder-3d/pull/3)) · **Preview:** [Vercel preview](https://scene-builder-3d-mfe0v2odl-nick-vyhouskis-projects.vercel.app) (requires Vercel team access, not a public link)
 > Everything published from this repo starts unlisted and is labeled `exploration`.
 
